@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+
+##################### Variables ############################
+DRIVE="/dev/DRIVEID"
+export country="United Kingdom"
+############################################################
+
+#part1
+printf '\033c'
+
+loadkeys uk
+
+################# Partition Drive #############################
+sgdisk --zap-all $DRIVE
+
+sgdisk --clear \
+       --new=1:0:+550MiB --typecode=1:ef00 --change-name=1:EFI \
+       --new=2:0:+8GiB   --typecode=2:8200 --change-name=2:cryptswap \
+       --new=3:0:0       --typecode=3:8300 --change-name=3:cryptsystem \
+         $DRIVE
+
+###############################################################
+
+#################### Format and Encrypt #######################
+#Format EFI using FAT32 FS
+mkfs.fat -F32 -n EFI /dev/disk/by-partlabel/EFI
+
+#Encrypt System Partition
+cryptsetup luksFormat --align-payload=8192 -s 256 -c aes-xts-plain64 /dev/disk/by-partlabel/cryptsystem
+
+# Open the luks container so that I can setup the btrfs volumes
+cryptsetup open /dev/disk/by-partlabel/cryptsystem system
+
+# Bring up encrypted swap. No hibernate enabled yet
+cryptsetup open --type plain --key-file /dev/urandom /dev/disk/by-partlabel/cryptswap swap
+mkswap -L swap /dev/mapper/swap
+swapon -L swap
+###############################################################
+
+######### Create and mount BTRFS subvolumes
+mkfs.btrfs --label system /dev/mapper/system
+
+o=defaults,x-mount.mkdir
+o_btrfs=$o,compress=lzo,ssd,noatime
+
+mount -t btrfs LABEL=system /mnt
+
+btrfs subvolume create /mnt/@root
+btrfs subvolume create /mnt/@log
+btrfs subvolume create /mnt/@pkgcache
+btrfs subvolume create /mnt/@home
+btrfs subvolume create /mnt/@documents
+btrfs subvolume create /mnt/@projects
+btrfs subvolume create /mnt/@snapshots
+
+umount -R /mnt
+
+mount -t btrfs -o subvol=@root,$o_btrfs LABEL=system /mnt
+mount -t btrfs -o subvol=@log,$o_btrfs LABEL=system /mnt/var/log
+mount -t btrfs -o subvol=@pkgcache,$o_btrfs LABEL=system /mnt/var/cache/pacman/pkg
+mount -t btrfs -o subvol=@home,$o_btrfs LABEL=system /mnt/home
+mount -t btrfs -o subvol=@documents,$o_btrfs LABEL=system /mnt/home/aidan/Documents
+mount -t btrfs -o subvol=@projects,$o_btrfs LABEL=system /mnt/home/aidan/Projects
+mount -t btrfs -o subvol=@snapshots,$o_btrfs LABEL=system /mnt/.snapshots
+###############################################################
+
+
+# Update Mirrors
+pacman -Syy reflector --needed --noconfirm
+reflector --verbose --country "$country" --age 12 --latest 10 --sort rate --protocol https --save /etc/pacman.d/mirrorlist
+pacman -Syy --noconfirmzzzzzzzzz
+
+
+#CurrentParallelNum=$(grep -e "^#ParallelDownloads" /etc/pacman.conf | tr -d "[:blank:]" | cut -d '=' -f2) 
+
+sed -i CurrentParallelNum=$(grep -e "^#ParallelDownloads" /etc/pacman.conf) 
+
+
+mkdir /mnt/boot
+mount LABEL=EFI /mnt/boot
+pacstrap /mnt base linux linux-firmware
+
+
+genfstab -L -p /mnt >> /mnt/etc/fstab
+
+
+
+sed -i "s/^#BottomUp$/BottomUp" /etc/paru.conf
