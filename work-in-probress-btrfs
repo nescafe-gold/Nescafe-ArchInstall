@@ -88,6 +88,7 @@ genfstab -L -p /mnt >> /mnt/etc/fstab
 
 echo -e "cryptswap\t/dev/disk/by-partlabel/cryptswap\t/dev/urandom\tswap,offset=2048,cipher=aes-xts-plain64,size=256" >> /etc/crypttab
 
+rm /mnt/etc/securetty
 # arch chroot alternative
 systemd-nspawn -bD /mnt
 
