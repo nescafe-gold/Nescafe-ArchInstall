@@ -47,8 +47,6 @@ o=defaults,x-mount.mkdir
 #o_btrfs=$o,compress=lzo,ssd,noatime
 o_btrfs=$o,compress=zstd,noatime,commit=120,space_cache=v2
 
-umount -R /mnt
-umount -R /dev/mapper
 mount -t btrfs LABEL=system /mnt
 
 btrfs subvolume create /mnt/@root
@@ -58,7 +56,6 @@ btrfs subvolume create /mnt/@opt
 btrfs subvolume create /mnt/@.snapshots
 
 umount -R /mnt
-umount -R /dev/mapper
 # Have an aption to put the opt or any other subvolme on hdd if you want to save space on ssd
 
 mount -t btrfs -o subvol=@root,$o_btrfs LABEL=system /mnt
