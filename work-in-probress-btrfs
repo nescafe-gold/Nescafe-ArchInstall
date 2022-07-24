@@ -88,22 +88,19 @@ genfstab -L -p /mnt >> /mnt/etc/fstab
 
 echo -e "cryptswap\t/dev/disk/by-partlabel/cryptswap\t/dev/urandom\tswap,offset=2048,cipher=aes-xts-plain64,size=256" >> /etc/crypttab
 
-rm /mnt/etc/securetty
-# arch chroot alternative
-systemd-nspawn -bD /mnt
 
-grep -q "ILoveCandy" /etc/pacman.conf || sed -i "/#VerbosePkgLists/a ILoveCandy" /etc/pacman.conf
-sed -Ei "s/^#(ParallelDownloads).*/\1 = 5/;/^#Color$/s/#//" /etc/pacman.conf
-sed -i "s/^#BottomUp$/BottomUp/" /etc/paru.conf
+sed '1,/^#part2$/d' `basename $0` > /mnt/arch_install2.sh
+chmod +x /mnt/arch_install2.sh
+arch-chroot /mnt ./arch_install2.sh
+exit 
 
-# Use all cores for compilation.
-sed -i "s/-j2/-j$(nproc)/;/^#MAKEFLAGS/s/^#//" /etc/makepkg.conf
-
-# Most important command! Get rid of the beep!
-rmmod pcspkr
-echo "blacklist pcspkr" >/etc/modprobe.d/nobeep.conf
+#part2
+printf '\033c'
 
 
+systemctl enable NetworkManager.service 
+rm /bin/sh
+ln -s dash /bin/sh
 ##################################################################
 
 export timezone="Europe/London"
@@ -122,22 +119,33 @@ locale-gen
 # timedatectl list-timezones
 #timedatectl set-timezone America/Los_Angeles
 #hostnamectl set-hostname $hostname
+####################################################
 
+############ Hostname & /etc/hosts #################
 # Hostname
 export hostname='laptop'
 echo "$hostname" > /etc/hostname
 
 #Set up host file
 echo -e "\n127.0.0.1\tlocalhost\n::1\t\tlocalhost\n127.0.1.1\t${hostname}.localdomain\t$hostname" > /etc/hosts
+#####################################################
 
 
 sed -i '/^HOOKS=/c\HOOKS=(base systemd autodetect sd-vconsole keybard keymap modconf block sd-encrypt btrfs filesystems resume fsck)' /etc/mkinitcpio.conf
 mkinitcpio -p linux
 mkinitcpio -p linux-lts
 
-poweroff
-
-arch-chroot /mnt
 grub-install --root-directory=/mnt $DRIVE
 grub-mkconfig -o /mnt/boot/grub/grub.cfg
 exit
+
+grep -q "ILoveCandy" /etc/pacman.conf || sed -i "/#VerbosePkgLists/a ILoveCandy" /etc/pacman.conf
+sed -Ei "s/^#(ParallelDownloads).*/\1 = 5/;/^#Color$/s/#//" /etc/pacman.conf
+sed -i "s/^#BottomUp$/BottomUp/" /etc/paru.conf
+
+# Use all cores for compilation.
+sed -i "s/-j2/-j$(nproc)/;/^#MAKEFLAGS/s/^#//" /etc/makepkg.conf
+
+# Most important command! Get rid of the beep!
+rmmod pcspkr
+echo "blacklist pcspkr" >/etc/modprobe.d/nobeep.conf
