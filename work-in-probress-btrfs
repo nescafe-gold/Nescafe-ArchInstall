@@ -98,7 +98,6 @@ exit
 printf '\033c'
 
 
-systemctl enable NetworkManager.service 
 rm /bin/sh
 ln -s dash /bin/sh
 ##################################################################
@@ -137,7 +136,6 @@ mkinitcpio -p linux-lts
 
 grub-install --root-directory=/mnt $DRIVE
 grub-mkconfig -o /mnt/boot/grub/grub.cfg
-exit
 
 grep -q "ILoveCandy" /etc/pacman.conf || sed -i "/#VerbosePkgLists/a ILoveCandy" /etc/pacman.conf
 sed -Ei "s/^#(ParallelDownloads).*/\1 = 5/;/^#Color$/s/#//" /etc/pacman.conf
@@ -149,3 +147,6 @@ sed -i "s/-j2/-j$(nproc)/;/^#MAKEFLAGS/s/^#//" /etc/makepkg.conf
 # Most important command! Get rid of the beep!
 rmmod pcspkr
 echo "blacklist pcspkr" >/etc/modprobe.d/nobeep.conf
+
+
+#systemctl enable NetworkManager.service 
