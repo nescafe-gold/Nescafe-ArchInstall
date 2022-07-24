@@ -42,7 +42,7 @@ mkfs.btrfs --label system /dev/mapper/system
 
 o=defaults,x-mount.mkdir
 #o_btrfs=$o,compress=lzo,ssd,noatime
-o_btrfs=$o,compress=zstd,noatime,commit=120,space_cache
+o_btrfs=$o,compress=zstd,noatime,commit=120,space_cache=v2
 
 mount -t btrfs LABEL=system /mnt
 
