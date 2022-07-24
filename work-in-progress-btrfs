@@ -53,7 +53,7 @@ btrfs subvolume create /mnt/@root
 btrfs subvolume create /mnt/@home
 btrfs subvolume create /mnt/@var
 btrfs subvolume create /mnt/@opt
-btrfs subvolume create /mnt/@.snapshots
+btrfs subvolume create /mnt/@snapshots
 
 umount -R /mnt
 # Have an aption to put the opt or any other subvolme on hdd if you want to save space on ssd
