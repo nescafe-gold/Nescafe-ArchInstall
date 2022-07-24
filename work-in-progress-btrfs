@@ -97,6 +97,12 @@ exit
 #part2
 printf '\033c'
 
+pacman -S --noconfirm intel-ucode
+
+# Install video drivers if intel graphics is used
+pacman -S --noconfirm xf86-video-intel --noconfirm
+
+
 
 rm /bin/sh
 ln -s dash /bin/sh
