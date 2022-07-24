@@ -57,6 +57,8 @@ btrfs subvolume create /mnt/@var
 btrfs subvolume create /mnt/@opt
 btrfs subvolume create /mnt/@.snapshots
 
+umount -R /mnt
+umount -R /dev/mapper
 # Have an aption to put the opt or any other subvolme on hdd if you want to save space on ssd
 
 mount -t btrfs -o subvol=@root,$o_btrfs LABEL=system /mnt
@@ -73,16 +75,10 @@ mount LABEL=EFI /mnt/boot
 
 grep -q "ILoveCandy" /etc/pacman.conf || sed -i "/#VerbosePkgLists/a ILoveCandy" /etc/pacman.conf
 sed -Ei "s/^#(ParallelDownloads).*/\1 = 5/;/^#Color$/s/#//" /etc/pacman.conf
-sed -i "s/^#BottomUp$/BottomUp" /etc/paru.conf
+sed -i "s/^#BottomUp$/BottomUp/" /etc/paru.conf
 
 # Use all cores for compilation.
 sed -i "s/-j2/-j$(nproc)/;/^#MAKEFLAGS/s/^#//" /etc/makepkg.conf
-
-# Most important command! Get rid of the beep!
-rmmod pcspkr
-echo "blacklist pcspkr" >/etc/modprobe.d/nobeep.conf
-
-
 
 # Update Mirrors
 pacman -Syy reflector --needed --noconfirm
@@ -101,7 +97,7 @@ systemd-nspawn -bD /mnt
 
 grep -q "ILoveCandy" /etc/pacman.conf || sed -i "/#VerbosePkgLists/a ILoveCandy" /etc/pacman.conf
 sed -Ei "s/^#(ParallelDownloads).*/\1 = 5/;/^#Color$/s/#//" /etc/pacman.conf
-sed -i "s/^#BottomUp$/BottomUp" /etc/paru.conf
+sed -i "s/^#BottomUp$/BottomUp/" /etc/paru.conf
 
 # Use all cores for compilation.
 sed -i "s/-j2/-j$(nproc)/;/^#MAKEFLAGS/s/^#//" /etc/makepkg.conf
