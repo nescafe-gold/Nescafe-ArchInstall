@@ -48,6 +48,7 @@ o=defaults,x-mount.mkdir
 o_btrfs=$o,compress=zstd,noatime,commit=120,space_cache=v2
 
 umount -R /mnt
+umount -R /dev/mapper
 mount -t btrfs LABEL=system /mnt
 
 btrfs subvolume create /mnt/@root
