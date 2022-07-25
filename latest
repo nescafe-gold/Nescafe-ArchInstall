@@ -440,7 +440,7 @@ sgdisk -v $DISK
 
 EFI="/dev/disk/by-partlabel/${EFI_LABEL}"
 CRYPTSWAP="/dev/disk/by-partlabel/${ENCRYPTED_SWAP_LABEL}"
-CRYPTSYSTEM="/dev/disk/by-partlabel/${ENCRYPTED_BTRFS_VOLUMES}"
+CRYPTSYSTEM="/dev/disk/by-partlabel/${ENCRYPTED_BTRFS_VOLUMES_LABEL}"
 
 SWAP="/dev/mapper/${CRYPTSWAP}"
 BTRFS="/dev/mapper/${CRYPTSYSTEM}"
