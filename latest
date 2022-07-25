@@ -538,7 +538,7 @@ sed -i "s/^#BottomUp$/BottomUp/" /mnt/etc/paru.conf
 
 # Most important command! Get rid of the beep!
 arch-chroot /mnt rmmod pcspkr
-echo "blacklist pcspkr" > /etc/modprobe.d/nobeep.conf
+echo "blacklist pcspkr" > /mnt/etc/modprobe.d/nobeep.conf
 
 
 # Boot backup hook.
