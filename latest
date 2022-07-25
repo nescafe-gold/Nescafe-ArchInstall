@@ -228,11 +228,6 @@ locale_selector () {
     esac
 }
 
-locale_setter () {
-    echo "$LOCALE" >> /etc/locale.gen
-}
-
-
 # User chooses the console keyboard layout (function).
 keyboard_selector () {
     input_print "Please insert the keyboard layout to use in console (enter empty to use US, or \"/\" to look up for keyboard layouts): "
@@ -274,6 +269,9 @@ if [ -z "$KEYMAP" ]
 then
     # Setting up keyboard layout.
     until keyboard_selector; do : ; done   
+else
+    kblayout = ${KEYMAP} 
+    loadkeys $kblayout
 fi
 
 # Choosing the target for the installation.
@@ -308,17 +306,22 @@ then
     # User choses the locale.
     until locale_selector; do : ; done
 else
-    locale_setter   
+    locale=${LOCALE}   
 fi
 
+if [ -z "$HOSTNAME" ]
+then
+    # User choses the hostname.
+    until hostname_selector; do : ; done
+else
+    hostname="${HOSTNAME}"
+fi 
 
-
-# User choses the hostname.
-until hostname_selector; do : ; done
 
 # User sets up the user/root passwords.
 until userpass_selector; do : ; done
 until rootpass_selector; do : ; done
+
 
 # Warn user about deletion of old partition scheme.
 input_print "This will delete the current partition table on $DISK once installation starts. Do you agree [y/N]?: "
@@ -327,6 +330,13 @@ if ! [[ "${disk_response,,}" =~ ^(yes|y)$ ]]; then
     error_print "Quitting."
     exit
 fi
+
+
+
+#################### Actual Install ###############
+
+
+
 info_print "Wiping $DISK."
 wipefs -af "$DISK" &>/dev/null
 # Zap drive and clear the gpt partition & create a new one
@@ -423,9 +433,6 @@ info_print "Installing the base system (it may take a while)."
 pacstrap /mnt base "$kernel" "$microcode" linux-firmware "$kernel"-headers btrfs-progs grub grub-btrfs rsync efibootmgr snapper reflector snap-pac zram-generator git zsh gptfdisk &>/dev/null
 
 
-
-
-
 # Setting up the hostname.
 echo "$hostname" > /mnt/etc/hostname
 
@@ -440,7 +447,14 @@ echo -e "cryptswap\t/dev/disk/by-partlabel/CRYPTSWAP\t/dev/urandom\tswap,offset=
 # Configure selected locale and console keymap
 sed -i "/^#$locale/s/^#//" /mnt/etc/locale.gen
 echo "LANG=$locale" > /mnt/etc/locale.conf
-echo "KEYMAP=$kblayout" > /mnt/etc/vconsole.conf
+
+if [ -z "$KEYMAP" ]
+then
+    echo "$kblayout" > /mnt/etc/vconsole.conf
+else
+    echo "$KEYMAP" > /mnt/etc/vconsole.conf
+fi
+
 
 # Setting hosts file.
 info_print "Setting hosts file."
