@@ -1,10 +1,14 @@
-#!/usr/bin/env bash
+##!/usr/bin/env -S bash -e
 
 ##################### Variables ############################
-DRIVE="/dev/DRIVEID"
+
+# /dev/id of drive you want to install arch on.  Leave blank to be prompted.
+DRIVE=""
+
+
 country="United Kingdom"
+
 EFI_SIZE="500M"
-user="aidan"
 
 # Encrypt everything (except /boot).  Leave blank to disable.
 ENCRYPT_DRIVE='TRUE'
@@ -24,14 +28,268 @@ USER_PASSWORD='password'
 # System timezone.
 TIMEZONE='Europe/London'
 
+# keymap (Lave blank to be prompted)
 KEYMAP='uk'
 
 ############################################################
+# Cosmetics (colours for text).
+BOLD='\e[1m'
+BRED='\e[91m'
+BBLUE='\e[34m'  
+BGREEN='\e[92m'
+BYELLOW='\e[93m'
+RESET='\e[0m'
 
+# Pretty print (function).
+info_print () {
+    echo -e "${BOLD}${BGREEN}[ ${BYELLOW}•${BGREEN} ] $1${RESET}"
+}
+
+# Pretty print for input (function).
+input_print () {
+    echo -ne "${BOLD}${BYELLOW}[ ${BGREEN}•${BYELLOW} ] $1${RESET}"
+}
+
+
+set_root_password() {
+    local password="$1"; shift
+
+    echo -en "$password\n$password" | passwd
+}
+
+
+create_user() {
+    local name="$1"; shift
+    local password="$1"; shift
+
+    useradd -m -G power,audio,wheel,storage,rfkill,network,video,scanner,adbusers,wireshark $user -s /usr/bin/zsh | passwd
+    echo -en "$password\n$password" | passwd "$name"
+}
+
+# Setting up a password for the user account (function).
+userpass_selector () {
+    input_print "Please enter name for a user account (enter empty to not create one): "
+    read -r username
+    if [[ -z "$username" ]]; then
+        return 0
+    fi
+    input_print "Please enter a password for $username (you're not going to see the password): "
+    read -r -s userpass
+    if [[ -z "$userpass" ]]; then
+        echo
+        error_print "You need to enter a password for $username, please try again."
+        return 1
+    fi
+    echo
+    input_print "Please enter the password again (you're not going to see it): " 
+    read -r -s userpass2
+    echo
+    if [[ "$userpass" != "$userpass2" ]]; then
+        echo
+        error_print "Passwords don't match, please try again."
+        return 1
+    fi
+    return 0
+}
+
+# Setting up a password for the root account (function).
+rootpass_selector () {
+    input_print "Please enter a password for the root user (you're not going to see it): "
+    read -r -s rootpass
+    if [[ -z "$rootpass" ]]; then
+        echo
+        error_print "You need to enter a password for the root user, please try again."
+        return 1
+    fi
+    echo
+    input_print "Please enter the password again (you're not going to see it): " 
+    read -r -s rootpass2
+    echo
+    if [[ "$rootpass" != "$rootpass2" ]]; then
+        error_print "Passwords don't match, please try again."
+        return 1
+    fi
+    return 0
+}
+
+# User enters a password for the LUKS Container (function).
+lukspass_selector () {
+    input_print "Please enter a password for the LUKS container (you're not going to see the password): "
+    read -r -s password
+    if [[ -z "$password" ]]; then
+        echo
+        error_print "You need to enter a password for the LUKS Container, please try again."
+        return 1
+    fi
+    echo
+    input_print "Please enter the password for the LUKS container again (you're not going to see the password): "
+    read -r -s password2
+    echo
+    if [[ "$password" != "$password2" ]]; then
+        error_print "Passwords don't match, please try again."
+        return 1
+    fi
+    return 0
+}
+
+
+# Virtualization check (function).
+virt_check () {
+    hypervisor=$(systemd-detect-virt)
+    case $hypervisor in
+        kvm )   info_print "KVM has been detected, setting up guest tools."
+                pacstrap /mnt qemu-guest-agent &>/dev/null
+                systemctl enable qemu-guest-agent --root=/mnt &>/dev/null
+                ;;
+        vmware  )   info_print "VMWare Workstation/ESXi has been detected, setting up guest tools."
+                    pacstrap /mnt open-vm-tools >/dev/null
+                    systemctl enable vmtoolsd --root=/mnt &>/dev/null
+                    systemctl enable vmware-vmblock-fuse --root=/mnt &>/dev/null
+                    ;;
+        oracle )    info_print "VirtualBox has been detected, setting up guest tools."
+                    pacstrap /mnt virtualbox-guest-utils &>/dev/null
+                    systemctl enable vboxservice --root=/mnt &>/dev/null
+                    ;;
+        microsoft ) info_print "Hyper-V has been detected, setting up guest tools."
+                    pacstrap /mnt hyperv &>/dev/null
+                    systemctl enable hv_fcopy_daemon --root=/mnt &>/dev/null
+                    systemctl enable hv_kvp_daemon --root=/mnt &>/dev/null
+                    systemctl enable hv_vss_daemon --root=/mnt &>/dev/null
+                    ;;
+    esac
+}
+
+# Microcode detector (function).
+microcode_detector () {
+    CPU=$(grep vendor_id /proc/cpuinfo)
+    if [[ "$CPU" == *"AuthenticAMD"* ]]; then
+        info_print "An AMD CPU has been detected, the AMD microcode will be installed."
+        microcode="amd-ucode"
+    else
+        info_print "An Intel CPU has been detected, the Intel microcode will be installed."
+        microcode="intel-ucode"
+    fi
+}
+
+# Installing the chosen networking method to the system (function).
+network_installer () {
+    case $network_choice in
+        1 ) info_print "Installing and enabling IWD."
+            pacstrap /mnt iwd >/dev/null
+            systemctl enable iwd --root=/mnt &>/dev/null
+            ;;
+        2 ) info_print "Installing and enabling NetworkManager."
+            pacstrap /mnt networkmanager >/dev/null
+            systemctl enable NetworkManager --root=/mnt &>/dev/null
+            ;;
+        3 ) info_print "Installing and enabling wpa_supplicant and dhcpcd."
+            pacstrap /mnt wpa_supplicant dhcpcd >/dev/null
+            systemctl enable wpa_supplicant --root=/mnt &>/dev/null
+            systemctl enable dhcpcd --root=/mnt &>/dev/null
+            ;;
+        4 ) info_print "Installing dhcpcd."
+            pacstrap /mnt dhcpcd >/dev/null
+            systemctl enable dhcpcd --root=/mnt &>/dev/null
+    esac
+}
+
+
+
+
+# User enters a hostname (function).
+hostname_selector () {
+    input_print "Please enter the hostname: "
+    read -r hostname
+    if [[ -z "$hostname" ]]; then
+        error_print "You need to enter a hostname in order to continue."
+        return 1
+    fi
+    return 0
+}
+
+# User chooses the locale (function).
+locale_selector () {
+    input_print "Please insert the locale you use (format: xx_XX. Enter empty to use en_GB, or \"/\" to search locales): " locale
+    read -r locale
+    case "$locale" in
+        '') locale="en_GB.UTF-8"
+            info_print "$locale will be the default locale."
+            return 0;;
+        '/') sed -E '/^# +|^#$/d;s/^#| *$//g;s/ .*/ (Charset:&)/' /etc/locale.gen | less -M
+                clear
+                return 1;;
+        *)  if ! grep -q "^#\?$(sed 's/[].*[]/\\&/g' <<< $locale) " /etc/locale.gen; then
+                error_print "The specified locale doesn't exist or isn't supported."
+                return 1
+            fi
+            return 0
+    esac
+}
+
+# User chooses the console keyboard layout (function).
+keyboard_selector () {
+    input_print "Please insert the keyboard layout to use in console (enter empty to use GB, or \"/\" to look up for keyboard layouts): "
+    read -r kblayout
+    case "$kblayout" in
+        '') kblayout="uk"
+            info_print "The standard UK keyboard layout will be used."
+            return 0;;
+        '/') localectl list-keymaps
+             clear
+             return 1;;
+        *) if ! localectl list-keymaps | grep -Fxq "$kblayout"; then
+               error_print "The specified keymap doesn't exist."
+               return 1
+           fi
+        info_print "Changing console layout to $kblayout."
+        loadkeys "$kblayout"
+        return 0
+    esac
+}
+
+
+# Alert user of bad input (function).
+error_print () {
+    echo -e "${BOLD}${BRED}[ ${BBLUE}•${BRED} ] $1${RESET}"
+}
+
+
+
+
+################################################################
 #part1
 printf '\033c'
 
-loadkeys uk
+if [ -z "$KEYMAP" ]
+then
+    # Setting up keyboard layout.
+    until keyboard_selector; do : ; done   
+fi
+
+
+# Choosing the target for the installation.
+
+if [ -z "$DRIVE" ]
+then
+    info_print "Available disks for the installation:"
+    PS3="Please select the number of the corresponding disk (e.g. 1): "
+    select ENTRY in $(lsblk -dpnoNAME|grep -P "/dev/sd|nvme|vd");
+    do
+        DRIVE="$ENTRY"
+        info_print "Arch Linux will be installed on the following disk: $DRIVE"
+        break
+    done
+fi
+
+if [ -z "$ROOT_PASSWORD" ]
+then
+    rootpass_selector; do : ; done
+fi
+
+if [ -z "$USER_PASSWORD" ]
+then
+    userpass_selector; do : ; done
+fi
 
 ################# Partition Drive #############################
 sgdisk --zap-all $DRIVE
@@ -43,6 +301,11 @@ sgdisk --new=3:0:0 --typecode=3:8300 --change-name=3:cryptsystem $DRIVE
 
 sgdisk -p $DRIVE
 sgdisk -v $DRIVE
+
+# Informing the Kernel of the changes.
+info_print "Informing the Kernel about the disk changes."
+partprobe "$DISK"
+
 
 ###############################################################
 # Create a section that maps the labels to uuid's
@@ -119,7 +382,7 @@ echo -e "cryptswap\t/dev/disk/by-partlabel/cryptswap\t/dev/urandom\tswap,offset=
 
 sed '1,/^#part2$/d' `basename $0` > /mnt/arch_install2.sh
 chmod +x /mnt/arch_install2.sh
-arch-chroot /mnt ./arch_install2.sh
+arch-chroot /mnt ./arch_install2.sh -c 
 exit 
 
 #part2
@@ -183,30 +446,6 @@ sed -i "/\[multilib\]/,/Include/"'s/^#//' /etc/pacman.conf
 sed -i "s/-j2/-j$(nproc)/;/^#MAKEFLAGS/s/^#//" /etc/makepkg.conf
 
 
-create_user() {
-    local name="$1"; shift
-    local password="$1"; shift
-
-    useradd -m -G power,audio,wheel,storage,rfkill,network,video,scanner,adbusers,wireshark $user -s /usr/bin/zsh | passwd
-    echo -en "$password\n$password" | passwd "$name"
-}
-
-set_root_password() {
-    local password="$1"; shift
-
-    echo -en "$password\n$password" | passwd
-}
-
-if [ -z "$ROOT_PASSWORD" ]
-then
-    echo 'Enter the root password:'
-    stty -echo
-    read ROOT_PASSWORD
-    stty echo
-  fi
-echo 'Setting root password'
-
-
 set_root_password "$ROOT_PASSWORD"
 create_user "$USER_NAME" "$USER_PASSWORD"
 
@@ -218,7 +457,7 @@ sed -i '/^# %wheel ALL=(ALL) NOPASSWD: ALL/s/^# //' /etc/sudoers
 
 git clone https://aur.archlinux.org/paru.git 
 cd paru
-su -c "makepkg -si" -s /bin/sh $user
+su -c "makepkg -si" -s /bin/sh $USER_NAME
 cd /root/Nescafe-ArchInstall
 rm -r paru
 
@@ -233,6 +472,13 @@ echo "blacklist pcspkr" >/etc/modprobe.d/nobeep.conf
 # Reconfigure sudo, so that a password is need to elevate privileges.
 sed -i '/^# %wheel ALL=(ALL) ALL/s/# //' /etc/sudoers # Uncomment line with sed
 sed -i '/^%wheel ALL=(ALL) NOPASSWD: ALL/s/^/# /' /etc/sudoers # Comment line with sed
+
+
+
+echo "Script has finished"
+
+
+echo -e "Do you want to change your ROOT password"
 
 
 #systemctl enable NetworkManager.service 
