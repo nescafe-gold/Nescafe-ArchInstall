@@ -12,10 +12,10 @@ BYELLOW='\e[93m'
 RESET='\e[0m'
 
 #leave these blank to be prompted
-KEYMAP = "uk"
-DISK = "/dev/nvme0n1"
-LOCALE = "en_GB.UTF-8"
-HOSTNAME = "TEST-ARCH"
+KEYMAP="uk"
+DISK="/dev/nvme0n1"
+LOCALE="en_GB.UTF-8"
+HOSTNAME="TEST-ARCH"
 
 # Pretty print (function).
 info_print () {
