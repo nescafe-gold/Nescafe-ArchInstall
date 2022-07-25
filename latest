@@ -443,7 +443,7 @@ CRYPTSWAP="/dev/disk/by-partlabel/${ENCRYPTED_SWAP_LABEL}"
 CRYPTSYSTEM="/dev/disk/by-partlabel/${ENCRYPTED_BTRFS_VOLUMES_LABEL}"
 
 SWAP="/dev/mapper/${ENCRYPTED_SWAP_LABEL}"
-BTRFS="/dev/mapper/${CRYPTSYSTEM}"
+BTRFS="/dev/mapper/${ENCRYPTED_BTRFS_VOLUMES_LABEL}"
 
 # Informing the Kernel of the changes.
 info_print "Informing the Kernel about the disk changes."
