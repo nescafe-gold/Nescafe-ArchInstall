@@ -4,6 +4,9 @@
 DRIVE="/dev/DRIVEID"
 export country="United Kingdom"
 export EFI_SIZE="500MB"
+export user="aidan"
+export"password"
+
 ############################################################
 
 #part1
@@ -144,10 +147,15 @@ grub-mkconfig -o /mnt/boot/grub/grub.cfg
 grep -q "ILoveCandy" /etc/pacman.conf || sed -i "/#VerbosePkgLists/a ILoveCandy" /etc/pacman.conf
 sed -Ei "s/^#(ParallelDownloads).*/\1 = 5/;/^#Color$/s/#//" /etc/pacman.conf
 
+useradd -m -G power,audio,wheel,storage $user -s /usr/bin/zsh
+echo "${user}:${password}" | chpasswd
+
+# Let users in wheel group run sudo commands without password for automated paru install
+sed -i '/^# %wheel ALL=(ALL) NOPASSWD: ALL/s/^# //' /etc/sudoers
 
 git clone https://aur.archlinux.org/paru.git 
 cd paru
-makepkg -si
+su -c "makepkg -si" -s /bin/sh $user
 cd /root/Nescafe-ArchInstall
 
 sed -i "s/^#BottomUp$/BottomUp/" /etc/paru.conf
@@ -158,6 +166,11 @@ sed -i "s/-j2/-j$(nproc)/;/^#MAKEFLAGS/s/^#//" /etc/makepkg.conf
 # Most important command! Get rid of the beep!
 rmmod pcspkr
 echo "blacklist pcspkr" >/etc/modprobe.d/nobeep.conf
+
+
+# Reconfigure sudo, so that a password is need to elevate privileges.
+sed -i '/^# %wheel ALL=(ALL) ALL/s/# //' /etc/sudoers # Uncomment line with sed
+sed -i '/^%wheel ALL=(ALL) NOPASSWD: ALL/s/^/# /' /etc/sudoers # Comment line with sed
 
 
 #systemctl enable NetworkManager.service 
