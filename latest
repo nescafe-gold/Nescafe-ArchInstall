@@ -361,14 +361,17 @@ until kernel_selector; do : ; done
 # User choses the network.
 until network_selector; do : ; done
 
+# If LOCALE is empty, then select locale and setup keyboard 
 until locale_selector; do : ; done
 
+# If HOSTNAME is empty, then select hostname
 until hostname_selector; do : ; done
 
 # Prompt to create username if USER_NAME variable is empty. Also give option to skip creating a username
 username_selector
 # If user chose to create a username and if the USER_PASSWORD variable is empty then prompt for a password
 until userpass_selector; do : ; done
+# If ROOT_PASSWORD is empty, then prompt for a password
 until rootpass_selector; do : ; done
 
 
