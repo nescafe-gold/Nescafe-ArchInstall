@@ -548,7 +548,7 @@ echo "$hostname" > /mnt/etc/hostname
 info_print "Generating a new fstab."
 genfstab -L -p /mnt >> /mnt/etc/fstab
 
-sed -i s/LABEL=${ENCRYPTED_SWAP_LABEL}/$SWAP/ /mnt/etc/fstab
+sed -i "s/LABEL=${ENCRYPTED_SWAP_LABEL}/$SWAP/" /mnt/etc/fstab
 
 echo -e "${ENCRYPTED_SWAP_LABEL}\t${CRYPTSWAP}\t/dev/urandom\tswap,offset=2048,cipher=aes-xts-plain64,size=256" >> /etc/crypttab
 
