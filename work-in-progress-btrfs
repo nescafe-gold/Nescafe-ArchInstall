@@ -311,7 +311,7 @@ sgdisk -v $DRIVE
 
 # Informing the Kernel of the changes.
 info_print "Informing the Kernel about the disk changes."
-partprobe "$Drive"
+partprobe "$DRIVE"
 
 
 ###############################################################
@@ -464,7 +464,7 @@ sed -i '/^# %wheel ALL=(ALL) NOPASSWD: ALL/s/^# //' /etc/sudoers
 
 git clone https://aur.archlinux.org/paru.git 
 cd paru
-su -c "makepkg -si" -s /bin/sh $user
+su -c "makepkg -si" -s /bin/sh $name
 cd /root/Nescafe-ArchInstall
 rm -r paru
 
