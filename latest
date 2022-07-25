@@ -12,7 +12,7 @@ BYELLOW='\e[93m'
 RESET='\e[0m'
 
 ###################  Variables ##################
-#leave these blank to be prompted
+#All of these variables will prompt you for the info in the script if they are left blank with just speech marks like so: =""
 
 #### Locale information & Hostname
 KEYMAP="uk"
