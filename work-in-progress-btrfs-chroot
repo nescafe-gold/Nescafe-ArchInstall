@@ -1,13 +1,14 @@
 #!/usr/bin/env -S bash -e
 
+
 # Enable logging.
 LOGFILE="install.log"
 exec &> >(tee -a "$LOGFILE")
 
-##################### Variables ############################
+# Script Variables
 
 # /dev/id of drive you want to install arch on.  Leave blank to be prompted.
-DRIVE=""
+export DRIVE=""
 
 
 country="United Kingdom"
@@ -34,6 +35,9 @@ TIMEZONE='Europe/London'
 
 # keymap (Lave blank to be prompted)
 KEYMAP='uk'
+
+# End of variables
+
 
 ############################################################
 # Cosmetics (colours for text).
@@ -393,12 +397,13 @@ genfstab -L -p /mnt >> /mnt/etc/fstab
 echo -e "cryptswap\t/dev/disk/by-partlabel/cryptswap\t/dev/urandom\tswap,offset=2048,cipher=aes-xts-plain64,size=256" >> /etc/crypttab
 
 
-pacman -S --noconfirm arch-install-scripts
-systemctl start machines.target
+sed '1,/^#part2$/d' `basename $0` > /mnt/arch_install2.sh
+chmod +x /mnt/arch_install2.sh
+arch-chroot /mnt ./arch_install2.sh -c 
+exit 
 
-echo "pts/0 pts/1 pts/2 pts/3 pts/4 pts/5 pts/6 pts/7 pts/8 pts/9" /mnt/etc/securetty
-
-systemd-nspawn -bD /mnt
+#part2
+printf '\033c'
 
 pacman -S --noconfirm intel-ucode
 
@@ -415,10 +420,10 @@ pacman -S --noconfirm xf86-video-intel libva-intel-driver --noconfirm
 
 ###################### locales ######################
 sed -i "/en_GB.UTF-8 UTF-8/s/^#//" /etc/locale.gen
+locale-gen
 # 24 hour format
 echo 'LC_TIME=en_GB.UTF-8' >> /etc/locale.conf
 echo 'KEYMAP=uk' >> /etc/vconsole.conf
-locale-gen
 
 localectl set-locale LANG=en_GB.UTF-8
 
@@ -512,15 +517,6 @@ sed -i "s/^#BottomUp$/BottomUp/" /etc/paru.conf
 rmmod pcspkr
 echo "blacklist pcspkr" >/etc/modprobe.d/nobeep.conf
 
-poweroff
-
-sed '1,/^#part2$/d' `basename $0` > /mnt/arch_install2.sh
-chmod +x /mnt/arch_install2.sh
-arch-chroot /mnt ./arch_install2.sh -c 
-exit 
-
-#part2
-printf '\033c'
 
 
 pacman -S --noconfirm grub grub-btrfs snapper snap-pac efibootmgr

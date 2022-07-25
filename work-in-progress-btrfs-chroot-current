@@ -1,13 +1,14 @@
 #!/usr/bin/env -S bash -e
 
+
 # Enable logging.
 LOGFILE="install.log"
 exec &> >(tee -a "$LOGFILE")
 
-##################### Variables ############################
+# Script Variables
 
 # /dev/id of drive you want to install arch on.  Leave blank to be prompted.
-DRIVE=""
+export DRIVE=""
 
 
 country="United Kingdom"
@@ -34,6 +35,9 @@ TIMEZONE='Europe/London'
 
 # keymap (Lave blank to be prompted)
 KEYMAP='uk'
+
+# End of variables
+
 
 ############################################################
 # Cosmetics (colours for text).
@@ -392,169 +396,4 @@ genfstab -L -p /mnt >> /mnt/etc/fstab
 
 echo -e "cryptswap\t/dev/disk/by-partlabel/cryptswap\t/dev/urandom\tswap,offset=2048,cipher=aes-xts-plain64,size=256" >> /etc/crypttab
 
-
-pacman -S --noconfirm arch-install-scripts
-systemctl start machines.target
-
-echo "pts/0 pts/1 pts/2 pts/3 pts/4 pts/5 pts/6 pts/7 pts/8 pts/9" /mnt/etc/securetty
-
-systemd-nspawn -bD /mnt
-
-pacman -S --noconfirm intel-ucode
-
-# Install video drivers if intel graphics is used
-pacman -S --noconfirm xf86-video-intel libva-intel-driver --noconfirm
-
-#rm /bin/sh
-#ln -s dash /bin/sh
-##################################################################
-
-#ln -sf /usr/share/zoneinfo/${TIMEZONE} /etc/localtime
-#timedatectl set-ntp 1
-#hwclock --systohc
-
-###################### locales ######################
-sed -i "/en_GB.UTF-8 UTF-8/s/^#//" /etc/locale.gen
-# 24 hour format
-echo 'LC_TIME=en_GB.UTF-8' >> /etc/locale.conf
-echo 'KEYMAP=uk' >> /etc/vconsole.conf
-locale-gen
-
-localectl set-locale LANG=en_GB.UTF-8
-
-timedatectl set-ntp 1
-timedatectl set-timezone $TIMEZONE
-hwclock --systohc
-
-# timedatectl list-timezones
-#timedatectl set-timezone America/Los_Angeles
-#hostnamectl set-hostname $hostname
-####################################################
-
-############ Hostname & /etc/hosts #################
-# Hostname
-hostnamectl set-hostname $hostname
-
-#export hostname='laptop'
-#echo "$hostname" > /etc/hostname
-
-#Set up host file
-echo -e "\n127.0.0.1\tlocalhost\n::1\t\tlocalhost\n127.0.1.1\t${hostname}.localdomain\t$hostname" > /etc/hosts
-#####################################################
-
-sed -i '/^HOOKS=/c\HOOKS=(base systemd autodetect sd-vconsole keyboard keymap modconf block sd-encrypt btrfs filesystems resume fsck)' /etc/mkinitcpio.conf
-mkinitcpio -p linux
-mkinitcpio -p linux-lts
-
-
-# Setting root password.
-info_print "Setting root password."
-echo "root:$rootpass" | arch-chroot /mnt chpasswd
-
-# Setting user password.
-if [[ -n "$username" ]]; then
-    echo "%wheel ALL=(ALL:ALL) ALL" > /mnt/etc/sudoers.d/wheel
-    info_print "Adding the user $username to the system with root privilege."
-    arch-chroot /mnt useradd -m -G wheel -s /bin/bash "$username"
-    info_print "Setting user password for $username."
-    echo "$username:$userpass" | arch-chroot /mnt chpasswd
-fi
-
-# Boot backup hook.
-info_print "Configuring /boot backup when pacman transactions are made."
-mkdir /mnt/etc/pacman.d/hooks
-cat > /mnt/etc/pacman.d/hooks/50-bootbackup.hook <<EOF
-[Trigger]
-Operation = Upgrade
-Operation = Install
-Operation = Remove
-Type = Path
-Target = usr/lib/modules/*/vmlinuz
-[Action]
-Depends = rsync
-Description = Backing up /boot...
-When = PostTransaction
-Exec = /usr/bin/rsync -a --delete /boot /.bootbackup
-EOF
-
-
-# Pacman eye-candy features & Paralell Downloads
-info_print "Enabling colours, animations, and parallel downloads for pacman."
-sed -Ei 's/^#(Color)$/\1\nILoveCandy/;s/^#(ParallelDownloads).*/\1 = 6/' /mnt/etc/pacman.conf
-
-
-#Add multilib repo
-sed -i "/\[multilib\]/,/Include/"'s/^#//' /etc/pacman.conf
-
-# Use all cores for compilation.
-sed -i "s/-j2/-j$(nproc)/;/^#MAKEFLAGS/s/^#//" /etc/makepkg.conf
-
-
-#set_root_password "$ROOT_PASSWORD"
-#create_user "$USER_NAME" "$USER_PASSWORD"
-
-
-#echo "${user}:${password}" | chpasswd
-
-# Let users in wheel group run sudo commands without password for automated paru install
-sed -i '/^# %wheel ALL=(ALL) NOPASSWD: ALL/s/^# //' /etc/sudoers
-
-git clone https://aur.archlinux.org/paru.git 
-cd paru
-su -c "makepkg -si" -s /bin/sh $username
-cd /root/Nescafe-ArchInstall
-rm -r paru
-
-sed -i "s/^#BottomUp$/BottomUp/" /etc/paru.conf
-
-
-# Most important command! Get rid of the beep!
-rmmod pcspkr
-echo "blacklist pcspkr" >/etc/modprobe.d/nobeep.conf
-
-poweroff
-
-sed '1,/^#part2$/d' `basename $0` > /mnt/arch_install2.sh
-chmod +x /mnt/arch_install2.sh
-arch-chroot /mnt ./arch_install2.sh -c 
-exit 
-
-#part2
-printf '\033c'
-
-
-pacman -S --noconfirm grub grub-btrfs snapper snap-pac efibootmgr
-grub-install --target=x86_64-efi --bootloader-id=Arch --efi-directory=/mnt/boot --root-directory=/mnt $DRIVE
-grub-mkconfig -o /mnt/boot/grub/grub.cfg
-
-# Setting up LUKS2 encryption in grub.
-info_print "Setting up grub config."
-BTRFS="/dev/mapper/cryptroot"
-UUID=$(blkid -s UUID -o value $system)
-sed -i "\,^GRUB_CMDLINE_LINUX=\"\",s,\",&rd.luks.name=${UUID}=system root=$BTRFS," /etc/default/grub
-
-
-# Enabling various services.
-info_print "Enabling Reflector, automatic snapshots, BTRFS scrubbing and systemd-oomd."
-services=(reflector.timer snapper-timeline.timer snapper-cleanup.timer btrfs-scrub@-.timer btrfs-scrub@home.timer btrfs-scrub@var-log.timer btrfs-scrub@\\x2esnapshots.timer grub-btrfs.path systemd-oomd)
-for service in "${services[@]}"; do
-    systemctl enable "$service" --root=/mnt &>/dev/null
-done
-
-
-
-
-# Reconfigure sudo, so that a password is need to elevate privileges.
-sed -i '/^# %wheel ALL=(ALL) ALL/s/# //' /etc/sudoers # Uncomment line with sed
-sed -i '/^%wheel ALL=(ALL) NOPASSWD: ALL/s/^/# /' /etc/sudoers # Comment line with sed
-
-
-
-echo "Script has finished"
-
-
-echo -e "Do you want to change your ROOT password"
-
-
-#systemctl enable NetworkManager.service 
-#systemctl enable sshd
+printenv
