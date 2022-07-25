@@ -13,6 +13,9 @@ RESET='\e[0m'
 
 
 KEYMAP = "uk"
+DISK = "/dev/nvme0n1"
+
+
 
 # Pretty print (function).
 info_print () {
@@ -269,17 +272,22 @@ then
 fi
 
 # Choosing the target for the installation.
-info_print "Here is a list of all the devices detected on your system:"
-lsblk -o NAME,SIZE,MOUNTPOINT,FSTYPE,LABEL,FSSIZE,FSAVAIL
+if [ -z "$DISK" ]
+then
+    info_print "Here is a list of all the devices detected on your system:"
+    lsblk -o NAME,SIZE,MOUNTPOINT,FSTYPE,LABEL,FSSIZE,FSAVAIL
 
-info_print "Available disks for the installation:"
-PS3="Please select the number of the corresponding disk (e.g. 1): "
-select ENTRY in $(lsblk -dpnoNAME|grep -P "/dev/sd|nvme|vd");
-do
-    DISK="$ENTRY"
+    info_print "Available disks for the installation:"
+    PS3="Please select the number of the corresponding disk (e.g. 1): "
+    select ENTRY in $(lsblk -dpnoNAME|grep -P "/dev/sd|nvme|vd");
+    do
+        DISK="$ENTRY"
+        info_print "Arch Linux will be installed on the following disk: $DISK"
+        break
+    done
+else
     info_print "Arch Linux will be installed on the following disk: $DISK"
-    break
-done
+fi
 
 # Setting up LUKS password.
 until lukspass_selector; do : ; done
