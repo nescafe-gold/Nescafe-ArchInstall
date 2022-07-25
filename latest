@@ -447,7 +447,7 @@ mkfs.fat -F 32 "$EFI"
 
 # Creating a LUKS Container for the root partition.
 info_print "Creating LUKS Container for the root partition."
-echo -n "$lukspass" | cryptsetup luksFormat $ENCRYPTION_OPTIONS "$CRYPTSYSTEM" -d - 
+echo -n "$lukspass" | cryptsetup luksFormat $ENCRYPTION_OPTIONS "$ENCRYPTED_BTRFS_VOLUMES_LABEL" -d - 
 echo -n "$lukspass" | cryptsetup open "$CRYPTSYSTEM" $ENCRYPTED_BTRFS_VOLUMES_LABEL -d - 
 
 # Bring up encrypted swap. No hibernate enabled yet
