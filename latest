@@ -503,12 +503,7 @@ echo -e "cryptswap\t/dev/disk/by-partlabel/CRYPTSWAP\t/dev/urandom\tswap,offset=
 # Configure selected locale and console keymap
 sed -i "/^#$locale/s/^#//" /mnt/etc/locale.gen
 echo "LANG=$locale" > /mnt/etc/locale.conf
-
-if [ -z "$KEYMAP" ]
-then
-    echo "$kblayout" > /mnt/etc/vconsole.conf
-else
-    echo "$KEYMAP" > /mnt/etc/vconsole.conf
+echo "$kblayout" > /mnt/etc/vconsole.conf
 fi
 
 
