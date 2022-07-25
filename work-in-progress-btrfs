@@ -283,12 +283,12 @@ fi
 
 if [ -z "$ROOT_PASSWORD" ]
 then
-    rootpass_selector; do : ; done
+    until rootpass_selector; do : ; done
 fi
 
 if [ -z "$USER_PASSWORD" ]
 then
-    userpass_selector; do : ; done
+    until userpass_selector; do : ; done
 fi
 
 ################# Partition Drive #############################
