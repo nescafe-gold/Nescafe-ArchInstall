@@ -320,7 +320,7 @@ disk_selector() {
     if [ -z "$DISK" ]
     then
         info_print "Here is a list of all the devices detected on your system:"
-        lsblk -o NAME,SIZE,MOUNTPOINT,FSTYPE,LABEL,FSSIZE,FSAVAIL
+        lsblk -o NAME,TYPE,SIZE,FSAVAIL,MOUNTPOINT,FSTYPE,LABEL
 
         info_print "Available disks for the installation:"
         PS3="Please select the number of the corresponding disk (e.g. 1): "
@@ -548,9 +548,9 @@ echo "$hostname" > /mnt/etc/hostname
 info_print "Generating a new fstab."
 genfstab -L -p /mnt >> /mnt/etc/fstab
 
+sed -i s/LABEL=swap/$SWAP+ /mnt/etc/fstab
 
-echo -e "cryptswap\t/dev/disk/by-partlabel/CRYPTSWAP\t/dev/urandom\tswap,offset=2048,cipher=aes-xts-plain64,size=256" >> /etc/crypttab
-
+echo -e "${ENCRYPTED_SWAP_LABEL}\t${CRYPTSWAP}\t/dev/urandom\tswap,offset=2048,cipher=aes-xts-plain64,size=256" >> /etc/crypttab
 
 # Configure selected locale and console keymap
 sed -i "/^#$locale/s/^#//" /mnt/etc/locale.gen
