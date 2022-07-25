@@ -394,7 +394,11 @@ genfstab -L -p /mnt >> /mnt/etc/fstab
 echo -e "cryptswap\t/dev/disk/by-partlabel/cryptswap\t/dev/urandom\tswap,offset=2048,cipher=aes-xts-plain64,size=256" >> /etc/crypttab
 
 
-pacman -S arch-install-scripts
+pacman -S --noconfirm arch-install-scripts
+systemctl start machines.target
+
+echo "pts/0 pts/1 pts/2 pts/3 pts/4 pts/5 pts/6 pts/7 pts/8 pts/9" /mnt/etc/securetty
+
 
 systemd-nspawn -bD /mnt
 
