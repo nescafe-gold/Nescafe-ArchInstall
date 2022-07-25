@@ -24,7 +24,7 @@ HOSTNAME="TEST-ARCH"
 DISK="/dev/nvme0n1"
 EFI_LABEL="EFI"
 ENCRYPTED_SWAP_LABEL="CRYPTSWAP"
-ENCRYPTED_BTRFS_VOLUMES="CRYPTSYTEM"
+ENCRYPTED_BTRFS_VOLUMES_LABEL="CRYPTSYTEM"
 
 ### Encryption Information
 ENCRYPTION_OPTIONS="--align-payload=8192 -s 256 -c aes-xts-plain64"
@@ -36,7 +36,7 @@ USER_PASSWORD="test"
 ROOT_PASSWORD="test"
 
 # Can be either true, True, TRUE or false, False, FALSE
-BLACKARCH="True"
+BLACKARCH="TrueVOLUMES"
 MULTILIB="True"
 
 
@@ -432,12 +432,15 @@ EFI="/dev/disk/by-partlabel/${EFI_LABEL}"
 CRYPTSWAP="/dev/disk/by-partlabel/${ENCRYPTED_SWAP_LABEL}"
 CRYPTSYSTEM="/dev/disk/by-partlabel/${ENCRYPTED_BTRFS_VOLUMES}"
 
+SWAP="/dev/mapper/${CRYPTSWAP}"
+BTRFS="/dev/mapper/${CRYPTSYSTEM}"
+
 # Informing the Kernel of the changes.
 info_print "Informing the Kernel about the disk changes."
 partprobe "$DISK"
 
 # Formatting the EFI as FAT32.
-info_print "Formatting the EFI Partition as FAT32."
+info_print "Formatting the EFI Partition as FAT32." 
 #mkfs.fat -F32 -n EFI /dev/disk/by-partlabel/EFI
 mkfs.fat -F 32 "$EFI" &>/dev/null
 
@@ -445,15 +448,13 @@ mkfs.fat -F 32 "$EFI" &>/dev/null
 # Creating a LUKS Container for the root partition.
 info_print "Creating LUKS Container for the root partition."
 echo -n "$lukspass" | cryptsetup luksFormat $ENCRYPTION_OPTIONS "$CRYPTSYSTEM" -d - &>/dev/null
-echo -n "$lukspass" | cryptsetup open "$CRYPTSYSTEM" cryptsystem -d - 
-BTRFS="/dev/mapper/cryptsystem"
+echo -n "$lukspass" | cryptsetup open "$CRYPTSYSTEM" $ENCRYPTED_BTRFS_VOLUMES_LABEL -d - 
 
 # Bring up encrypted swap. No hibernate enabled yet
-cryptsetup open --type plain --key-file /dev/urandom $CRYPTSWAP swap
-mkswap -L swap /dev/mapper/swap
-swapon -L swap
+cryptsetup open --type plain --key-file /dev/urandom $CRYPTSWAP $ENCRYPTED_SWAP_LABEL
+mkswap -L $ENCRYPTED_SWAP_LABEL $SWAP
+swapon -L $ENCRYPTED_SWAP_LABEL
 ###############################################################
-
 
 # Formatting the LUKS Container as BTRFS.
 info_print "Formatting the LUKS container as BTRFS."
