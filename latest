@@ -23,8 +23,6 @@ MULTILIB="True"
 
 # Can be either true, True, TRUE or false, False, FALSE
 ENCRYPTION_PASSWORD="test_password"
-USER_PASSWORD=""
-ROOT_PASSWORD=""
 
 # Pretty print (function).
 info_print () {
