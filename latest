@@ -270,7 +270,7 @@ then
     # Setting up keyboard layout.
     until keyboard_selector; do : ; done   
 else
-    kblayout = ${KEYMAP} 
+    kblayout="${KEYMAP}" 
     loadkeys $kblayout
 fi
 
@@ -306,7 +306,7 @@ then
     # User choses the locale.
     until locale_selector; do : ; done
 else
-    locale=${LOCALE}   
+    locale="${LOCALE}"   
 fi
 
 if [ -z "$HOSTNAME" ]
