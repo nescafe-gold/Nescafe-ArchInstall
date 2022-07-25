@@ -401,7 +401,6 @@ echo "pts/0 pts/1 pts/2 pts/3 pts/4 pts/5 pts/6 pts/7 pts/8 pts/9" /mnt/etc/secu
 
 systemd-nspawn -bD /mnt
 
-
 pacman -S --noconfirm intel-ucode
 
 # Install video drivers if intel graphics is used
@@ -411,17 +410,22 @@ pacman -S --noconfirm xf86-video-intel libva-intel-driver --noconfirm
 #ln -s dash /bin/sh
 ##################################################################
 
-ln -sf /usr/share/zoneinfo/${TIMEZONE} /etc/localtime
-timedatectl set-ntp 1
-hwclock --systohc
+#ln -sf /usr/share/zoneinfo/${TIMEZONE} /etc/localtime
+#timedatectl set-ntp 1
+#hwclock --systohc
 
 ###################### locales ######################
+sed -i "/en_GB.UTF-8 UTF-8/s/^#//" /etc/locale.gen
 # 24 hour format
 echo 'LC_TIME=en_GB.UTF-8' >> /etc/locale.conf
 echo 'KEYMAP=uk' >> /etc/vconsole.conf
-sed -i "/en_GB.UTF-8 UTF-8/s/^#//" /etc/locale.gen
 locale-gen
 
+localectl set-locale LANG=en_GB.UTF-8
+
+timedatectl set-ntp 1
+timedatectl set-timezone $TIMEZONE
+hwclock --systohc
 
 # timedatectl list-timezones
 #timedatectl set-timezone America/Los_Angeles
@@ -430,8 +434,10 @@ locale-gen
 
 ############ Hostname & /etc/hosts #################
 # Hostname
-export hostname='laptop'
-echo "$hostname" > /etc/hostname
+hostnamectl set-hostname $hostname
+
+#export hostname='laptop'
+#echo "$hostname" > /etc/hostname
 
 #Set up host file
 echo -e "\n127.0.0.1\tlocalhost\n::1\t\tlocalhost\n127.0.1.1\t${hostname}.localdomain\t$hostname" > /etc/hosts
@@ -440,8 +446,6 @@ echo -e "\n127.0.0.1\tlocalhost\n::1\t\tlocalhost\n127.0.1.1\t${hostname}.locald
 sed -i '/^HOOKS=/c\HOOKS=(base systemd autodetect sd-vconsole keyboard keymap modconf block sd-encrypt btrfs filesystems resume fsck)' /etc/mkinitcpio.conf
 mkinitcpio -p linux
 mkinitcpio -p linux-lts
-
-
 
 
 # Setting root password.
@@ -523,7 +527,6 @@ printf '\033c'
 pacman -S --noconfirm grub grub-btrfs snapper snap-pac efibootmgr
 grub-install --target=x86_64-efi --bootloader-id=Arch --efi-directory=/mnt/boot --root-directory=/mnt $DRIVE
 grub-mkconfig -o /mnt/boot/grub/grub.cfg
-
 
 # Setting up LUKS2 encryption in grub.
 info_print "Setting up grub config."
