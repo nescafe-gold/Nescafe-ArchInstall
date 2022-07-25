@@ -61,23 +61,23 @@ virt_check () {
     hypervisor=$(systemd-detect-virt)
     case $hypervisor in
            kvm )   info_print "KVM has been detected, setting up guest tools."
-                pacstrap /mnt qemu-guest-agent &>/dev/null
-                systemctl enable qemu-guest-agent --root=/mnt &>/dev/null
+                pacstrap /mnt qemu-guest-agent 
+                systemctl enable qemu-guest-agent --root=/mnt 
                 ;;
         vmware  )   info_print "VMWare Workstation/ESXi has been detected, setting up guest tools."
-                    pacstrap /mnt open-vm-tools >/dev/null
-                    systemctl enable vmtoolsd --root=/mnt &>/dev/null
-                    systemctl enable vmware-vmblock-fuse --root=/mnt &>/dev/null
+                    pacstrap /mnt open-vm-tools
+                    systemctl enable vmtoolsd --root=/mnt 
+                    systemctl enable vmware-vmblock-fuse --root=/mnt 
                     ;;
         oracle )    info_print "VirtualBox has been detected, setting up guest tools."
-                    pacstrap /mnt virtualbox-guest-utils &>/dev/null
-                    systemctl enable vboxservice --root=/mnt &>/dev/null
+                    pacstrap /mnt virtualbox-guest-utils 
+                    systemctl enable vboxservice --root=/mnt 
                     ;;
         microsoft ) info_print "Hyper-V has been detected, setting up guest tools."
                     pacstrap /mnt hyperv &>/dev/null
-                    systemctl enable hv_fcopy_daemon --root=/mnt &>/dev/null
-                    systemctl enable hv_kvp_daemon --root=/mnt &>/dev/null
-                    systemctl enable hv_vss_daemon --root=/mnt &>/dev/null
+                    systemctl enable hv_fcopy_daemon --root=/mnt 
+                    systemctl enable hv_kvp_daemon --root=/mnt 
+                    systemctl enable hv_vss_daemon --root=/mnt
                     ;;
     esac
 }
@@ -126,21 +126,21 @@ network_selector () {
 network_installer () {
     case $network_choice in
         1 ) info_print "Installing and enabling IWD."
-            pacstrap /mnt iwd >/dev/null
-            systemctl enable iwd --root=/mnt &>/dev/null
+            pacstrap /mnt iwd 
+            systemctl enable iwd --root=/mnt 
             ;;
         2 ) info_print "Installing and enabling NetworkManager."
-            pacstrap /mnt networkmanager >/dev/null
-            systemctl enable NetworkManager --root=/mnt &>/dev/null
+            pacstrap /mnt networkmanager 
+            systemctl enable NetworkManager --root=/mnt 
             ;;
         3 ) info_print "Installing and enabling wpa_supplicant and dhcpcd."
-            pacstrap /mnt wpa_supplicant dhcpcd >/dev/null
-            systemctl enable wpa_supplicant --root=/mnt &>/dev/null
-            systemctl enable dhcpcd --root=/mnt &>/dev/null
+            pacstrap /mnt wpa_supplicant dhcpcd 
+            systemctl enable wpa_supplicant --root=/mnt 
+            systemctl enable dhcpcd --root=/mnt
             ;;
         4 ) info_print "Installing dhcpcd."
             pacstrap /mnt dhcpcd >/dev/null
-            systemctl enable dhcpcd --root=/mnt &>/dev/null
+            systemctl enable dhcpcd --root=/mnt
     esac
 }
 
