@@ -512,14 +512,9 @@ else
 fi
 
 
-# Setting hosts file.
-info_print "Setting hosts file."
-cat > /mnt/etc/hosts <<EOF
-127.0.0.1   localhost
-::1         localhost
-127.0.1.1   $hostname.localdomain   $hostname
-EOF
-
+# Setting up hosts file.
+info_print "Setting up hosts file at /etc/hosts"
+echo -e "\n127.0.0.1\tlocalhost\n::1\t\tlocalhost\n127.0.1.1\t${hostname}.localdomain\t$hostname" >> /etc/hosts
 
 # Virtualization check.
 virt_check
