@@ -1,7 +1,5 @@
 ##!/usr/bin/env -S bash -e
 
-# Enable error handling.
-set -euxo pipefail
 
 # Enable logging.
 LOGFILE="install.log"
@@ -24,13 +22,13 @@ ENCRYPT_DRIVE='TRUE'
 DRIVE_PASSPHRASE=''
 
 # Root password (leave blank to be prompted).
-ROOT_PASSWORD='password'
+ROOT_PASSWORD=''
 
 # Main user to create (by default, added to wheel group, and others).
-USER_NAME='aidan'
+USER_NAME=''
 
 # The main user's password (leave blank to be prompted).
-USER_PASSWORD='password'
+USER_PASSWORD=''
 
 # System timezone.
 TIMEZONE='Europe/London'
