@@ -147,7 +147,7 @@ mkinitcpio -p linux
 mkinitcpio -p linux-lts
 
 pacman -S --noconfirm grub
-grub-install --root-directory=/mnt $DRIVE
+grub-install --bootloader-id=Arch --efi-directory=/mnt/boot --root-directory=/mnt $DRIVE
 grub-mkconfig -o /mnt/boot/grub/grub.cfg
 
 grep -q "ILoveCandy" /etc/pacman.conf || sed -i "/#VerbosePkgLists/a ILoveCandy" /etc/pacman.conf
