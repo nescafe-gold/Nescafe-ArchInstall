@@ -394,13 +394,10 @@ genfstab -L -p /mnt >> /mnt/etc/fstab
 echo -e "cryptswap\t/dev/disk/by-partlabel/cryptswap\t/dev/urandom\tswap,offset=2048,cipher=aes-xts-plain64,size=256" >> /etc/crypttab
 
 
-sed '1,/^#part2$/d' `basename $0` > /mnt/arch_install2.sh
-chmod +x /mnt/arch_install2.sh
-arch-chroot /mnt ./arch_install2.sh -c 
-exit 
+pacman -S arch-install-scripts
 
-#part2
-printf '\033c'
+systemd-nspawn -bD /mnt
+
 
 pacman -S --noconfirm intel-ucode
 
@@ -442,16 +439,6 @@ sed -i '/^HOOKS=/c\HOOKS=(base systemd autodetect sd-vconsole keyboard keymap mo
 mkinitcpio -p linux
 mkinitcpio -p linux-lts
 
-pacman -S --noconfirm grub grub-btrfs snapper snap-pac
-grub-install --target=x86_64-efi --bootloader-id=Arch --efi-directory=/mnt/boot --root-directory=/mnt $DRIVE
-grub-mkconfig -o /mnt/boot/grub/grub.cfg
-
-
-# Setting up LUKS2 encryption in grub.
-info_print "Setting up grub config."
-BTRFS="/dev/mapper/cryptroot"
-UUID=$(blkid -s UUID -o value $system)
-sed -i "\,^GRUB_CMDLINE_LINUX=\"\",s,\",&rd.luks.name=${UUID}=system root=$BTRFS," /etc/default/grub
 
 
 
@@ -519,6 +506,28 @@ sed -i "s/^#BottomUp$/BottomUp/" /etc/paru.conf
 # Most important command! Get rid of the beep!
 rmmod pcspkr
 echo "blacklist pcspkr" >/etc/modprobe.d/nobeep.conf
+
+poweroff
+
+sed '1,/^#part2$/d' `basename $0` > /mnt/arch_install2.sh
+chmod +x /mnt/arch_install2.sh
+arch-chroot /mnt ./arch_install2.sh -c 
+exit 
+
+#part2
+printf '\033c'
+
+
+pacman -S --noconfirm grub grub-btrfs snapper snap-pac efibootmgr
+grub-install --target=x86_64-efi --bootloader-id=Arch --efi-directory=/mnt/boot --root-directory=/mnt $DRIVE
+grub-mkconfig -o /mnt/boot/grub/grub.cfg
+
+
+# Setting up LUKS2 encryption in grub.
+info_print "Setting up grub config."
+BTRFS="/dev/mapper/cryptroot"
+UUID=$(blkid -s UUID -o value $system)
+sed -i "\,^GRUB_CMDLINE_LINUX=\"\",s,\",&rd.luks.name=${UUID}=system root=$BTRFS," /etc/default/grub
 
 
 # Enabling various services.
