@@ -102,10 +102,8 @@ pacman -S --noconfirm intel-ucode
 # Install video drivers if intel graphics is used
 pacman -S --noconfirm xf86-video-intel --noconfirm
 
-
-
-rm /bin/sh
-ln -s dash /bin/sh
+#rm /bin/sh
+#ln -s dash /bin/sh
 ##################################################################
 
 export timezone="Europe/London"
