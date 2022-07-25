@@ -90,7 +90,7 @@ pacman -Syy reflector --needed --noconfirm
 reflector --verbose --country "$country" --age 12 --latest 10 --sort rate --protocol https --save /etc/pacman.d/mirrorlist
 pacman -Syy --noconfirm
 
-pacstrap /mnt base base-devel linux linux-lts linux-firmware btrfs-progs
+pacstrap /mnt base base-devel linux linux-lts linux-firmware btrfs-progs zsh
 
 genfstab -L -p /mnt >> /mnt/etc/fstab
 
