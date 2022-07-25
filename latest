@@ -332,10 +332,7 @@ if ! [[ "${disk_response,,}" =~ ^(yes|y)$ ]]; then
 fi
 
 
-
 #################### Actual Install ###############
-
-
 
 info_print "Wiping $DISK."
 wipefs -af "$DISK" &>/dev/null
@@ -388,7 +385,7 @@ mount "$BTRFS" /mnt
 
 # Creating BTRFS subvolumes.
 info_print "Creating BTRFS subvolumes."
-subvols=(snapshots var_pkgs var_log home root srv)
+subvols=(snapshots var_pkgs var_log home srv)
 for subvol in '' "${subvols[@]}"; do
     btrfs su cr /mnt/@"$subvol" &>/dev/null
 done
@@ -408,6 +405,13 @@ mount -o "$mountopts",subvol=@var_pkgs "$BTRFS" /mnt/var/cache/pacman/pkg
 chattr +C /mnt/var/log
 mount $EFI /mnt/boot
 
+
+# Checking the microcode to install.
+info_print "Detecting whether you have Intel or AMD CPU to install the necessary packages later"
+info_print "$microcode will be installed later"
+microcode_detector
+
+
 # Pacman eye-candy features.
 info_print "Enabling colours, animations, and parallel downloads for pacman."
 sed -Ei 's/^#(Color)$/\1\nILoveCandy/;s/^#(ParallelDownloads).*/\1 = 6/' /etc/pacman.conf
@@ -419,7 +423,6 @@ sed -i "/\[multilib\]/,/Include/"'s/^#//' /etc/pacman.conf
 # Use all cores for compilation.
 info_print "Configure makepkg.conf to compile packages with all CPU cores"
 sed -i "s/-j2/-j$(nproc)/;/^#MAKEFLAGS/s/^#//" /etc/makepkg.conf
-
 
 info_print "Updating pacman mirrors"
 # Update Mirrors
@@ -464,8 +467,6 @@ cat > /mnt/etc/hosts <<EOF
 127.0.1.1   $hostname.localdomain   $hostname
 EOF
 
-# Checking the microcode to install.
-microcode_detector
 
 # Virtualization check.
 virt_check
