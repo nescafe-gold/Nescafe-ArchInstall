@@ -304,7 +304,7 @@ sgdisk -v $DRIVE
 
 # Informing the Kernel of the changes.
 info_print "Informing the Kernel about the disk changes."
-partprobe "$DISK"
+partprobe "$Drive"
 
 
 ###############################################################
