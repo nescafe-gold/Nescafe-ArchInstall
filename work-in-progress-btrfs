@@ -277,7 +277,7 @@ fi
 if [ -z "$DRIVE" ]
 then
     info_print "Available disks for the installation:"
-    lsblk -o NAME,SIZE,MOUNTPOINT,FSROOTS,LABEL,FSTYPE,FSSIZE,FSAVAIL
+    lsblk -o NAME,SIZE,MOUNTPOINT,FSTYPE,LABEL,FSSIZE,FSAVAIL
     
     PS3="Please select the number of the corresponding disk (e.g. 1): "
     select ENTRY in $(lsblk -dpnoNAME|grep -P "/dev/sd|nvme|vd");
@@ -399,7 +399,6 @@ systemctl start machines.target
 
 echo "pts/0 pts/1 pts/2 pts/3 pts/4 pts/5 pts/6 pts/7 pts/8 pts/9" /mnt/etc/securetty
 
-
 systemd-nspawn -bD /mnt
 
 
@@ -412,8 +411,7 @@ pacman -S --noconfirm xf86-video-intel libva-intel-driver --noconfirm
 #ln -s dash /bin/sh
 ##################################################################
 
-export timezone="Europe/London"
-ln -sf /usr/share/zoneinfo/${timezone} /etc/localtime
+ln -sf /usr/share/zoneinfo/${TIMEZONE} /etc/localtime
 timedatectl set-ntp 1
 hwclock --systohc
 
