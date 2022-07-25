@@ -13,28 +13,28 @@ export DRIVE=""
 
 country="United Kingdom"
 
-EFI_SIZE=""
+export EFI_SIZE=""
 
 # Encrypt everything (except /boot).  Leave blank to disable.
-ENCRYPT_DRIVE='TRUE'
+export ENCRYPT_DRIVE='TRUE'
 
 # Passphrase used to encrypt the drive (leave blank to be prompted).
-DRIVE_PASSPHRASE=''
+export DRIVE_PASSPHRASE=''
 
 # Root password (leave blank to be prompted).
-ROOT_PASSWORD=''
+export ROOT_PASSWORD=''
 
 # Main user to create (by default, added to wheel group, and others).
-USER_NAME=''
+export USER_NAME=''
 
 # The main user's password (leave blank to be prompted).
-USER_PASSWORD=''
+export USER_PASSWORD=''
 
 # System timezone.
-TIMEZONE='Europe/London'
+export TIMEZONE='Europe/London'
 
 # keymap (Lave blank to be prompted)
-KEYMAP='uk'
+export KEYMAP='uk'
 
 # End of variables
 
@@ -271,7 +271,9 @@ printf '\033c'
 if [ -z "$KEYMAP" ]
 then
     # Setting up keyboard layout.
-    until keyboard_selector; do : ; done   
+    until keyboard_selector; do : ; done
+else
+    loadkeys $KEYMAP
 fi
 
 
