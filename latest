@@ -139,7 +139,7 @@ network_installer () {
             systemctl enable dhcpcd --root=/mnt
             ;;
         4 ) info_print "Installing dhcpcd."
-            pacstrap /mnt dhcpcd >/dev/null
+            pacstrap /mnt dhcpcd 
             systemctl enable dhcpcd --root=/mnt
     esac
 }
@@ -412,16 +412,16 @@ fi
 
 #################### Actual Install ###############
 info_print "Wiping $DISK."
-wipefs -af "$DISK" &>/dev/null
+wipefs -af "$DISK" 
 # Zap drive and clear the gpt partition & create a new one
-sgdisk -Zo "$DISK" &>/dev/null
+sgdisk -Zo "$DISK" 
 
 # Creating a new partition scheme.
 info_print "Creating the partitions on $DISK."
 
-sgdisk --new=1:0:+500M --typecode=1:ef00 --change-name=1:${EFI_LABEL} $DISK &>/dev/null
-sgdisk --new=2:0:+8G --typecode=2:8200 --change-name=2:${ENCRYPTED_SWAP_LABEL} $DISK &>/dev/null
-sgdisk --new=3:0:0 --typecode=3:8300 --change-name=3:${ENCRYPTED_BTRFS_VOLUMES} $DISK &>/dev/null
+sgdisk --new=1:0:+500M --typecode=1:ef00 --change-name=1:${EFI_LABEL} $DISK 
+sgdisk --new=2:0:+8G --typecode=2:8200 --change-name=2:${ENCRYPTED_SWAP_LABEL} $DISK 
+sgdisk --new=3:0:0 --typecode=3:8300 --change-name=3:${ENCRYPTED_BTRFS_VOLUMES} $DISK 
 
 sgdisk -p $DISK 
 info_print "Parition Summary:"
@@ -442,12 +442,12 @@ partprobe "$DISK"
 # Formatting the EFI as FAT32.
 info_print "Formatting the EFI Partition as FAT32." 
 #mkfs.fat -F32 -n EFI /dev/disk/by-partlabel/EFI
-mkfs.fat -F 32 "$EFI" &>/dev/null
+mkfs.fat -F 32 "$EFI" 
 
 
 # Creating a LUKS Container for the root partition.
 info_print "Creating LUKS Container for the root partition."
-echo -n "$lukspass" | cryptsetup luksFormat $ENCRYPTION_OPTIONS "$CRYPTSYSTEM" -d - &>/dev/null
+echo -n "$lukspass" | cryptsetup luksFormat $ENCRYPTION_OPTIONS "$CRYPTSYSTEM" -d - 
 echo -n "$lukspass" | cryptsetup open "$CRYPTSYSTEM" $ENCRYPTED_BTRFS_VOLUMES_LABEL -d - 
 
 # Bring up encrypted swap. No hibernate enabled yet
@@ -458,14 +458,14 @@ swapon -L $ENCRYPTED_SWAP_LABEL
 
 # Formatting the LUKS Container as BTRFS.
 info_print "Formatting the LUKS container as BTRFS."
-mkfs.btrfs "$BTRFS" &>/dev/null
+mkfs.btrfs "$BTRFS" 
 mount "$BTRFS" /mnt
 
 # Creating BTRFS subvolumes.
 info_print "Creating BTRFS subvolumes."
 subvols=(snapshots var_pkgs var_log home srv)
 for subvol in '' "${subvols[@]}"; do
-    btrfs su cr /mnt/@"$subvol" &>/dev/null
+    btrfs su cr /mnt/@"$subvol" 
 done
 
 # Mounting the newly created subvolumes.
@@ -659,7 +659,7 @@ EOF
 info_print "Enabling Reflector, automatic snapshots, BTRFS scrubbing and systemd-oomd."
 services=(reflector.timer snapper-timeline.timer snapper-cleanup.timer btrfs-scrub@-.timer btrfs-scrub@home.timer btrfs-scrub@var-log.timer btrfs-scrub@\\x2esnapshots.timer grub-btrfs.path systemd-oomd)
 for service in "${services[@]}"; do
-    systemctl enable "$service" --root=/mnt &>/dev/null
+    systemctl enable "$service" --root=/mnt
 done
 
 # Finishing up.
