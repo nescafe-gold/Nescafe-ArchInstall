@@ -146,7 +146,7 @@ sed -i '/^HOOKS=/c\HOOKS=(base systemd autodetect sd-vconsole keyboard keymap mo
 mkinitcpio -p linux
 mkinitcpio -p linux-lts
 
-pacman -S --needed grub
+pacman -S --noconfirm grub
 grub-install --root-directory=/mnt $DRIVE
 grub-mkconfig -o /mnt/boot/grub/grub.cfg
 
