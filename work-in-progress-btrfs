@@ -277,7 +277,7 @@ fi
 if [ -z "$DRIVE" ]
 then
     info_print "Available disks for the installation:"
-    lsblk -o NAME,SIZE,MOUNTPOINT,FSROOTS,LABEL,FSTYPE,FSSIZE,FSAVAIL)
+    lsblk -o NAME,SIZE,MOUNTPOINT,FSROOTS,LABEL,FSTYPE,FSSIZE,FSAVAIL
     
     PS3="Please select the number of the corresponding disk (e.g. 1): "
     select ENTRY in $(lsblk -dpnoNAME|grep -P "/dev/sd|nvme|vd");
