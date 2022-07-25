@@ -11,6 +11,9 @@ BGREEN='\e[92m'
 BYELLOW='\e[93m'
 RESET='\e[0m'
 
+
+KEYMAP = "uk"
+
 # Pretty print (function).
 info_print () {
     echo -e "${BOLD}${BGREEN}[ ${BYELLOW}•${BGREEN} ] $1${RESET}"
@@ -258,8 +261,12 @@ echo -ne "${BOLD}${BYELLOW}
 ${RESET}"
 info_print "Welcome to easy-arch, a script made in order to simplify the process of installing Arch Linux."
 
-# Setting up keyboard layout.
-until keyboard_selector; do : ; done
+# If KEYMAP variable is empty then run keyboard_selector
+if [ -z "$KEYMAP" ]
+then
+    # Setting up keyboard layout.
+    until keyboard_selector; do : ; done   
+fi
 
 # Choosing the target for the installation.
 info_print "Here is a list of all the devices detected on your system:"
@@ -369,8 +376,7 @@ chmod 750 /mnt/root
 mount -o "$mountopts",subvol=@snapshots "$BTRFS" /mnt/.snapshots
 mount -o "$mountopts",subvol=@var_pkgs "$BTRFS" /mnt/var/cache/pacman/pkg
 chattr +C /mnt/var/log
-mount LABEL=EFI /mnt/boot
-
+mount $EFI /mnt/boot
 
 # Pacman eye-candy features.
 info_print "Enabling colours, animations, and parallel downloads for pacman."
