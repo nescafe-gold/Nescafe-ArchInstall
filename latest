@@ -11,6 +11,7 @@ BGREEN='\e[92m'
 BYELLOW='\e[93m'
 RESET='\e[0m'
 
+
 #leave these blank to be prompted
 KEYMAP="uk"
 DISK="/dev/nvme0n1"
@@ -450,7 +451,7 @@ microcode_detector
 info_print "Enabling colours, animations, and parallel downloads for pacman."
 sed -Ei 's/^#(Color)$/\1\nILoveCandy/;s/^#(ParallelDownloads).*/\1 = 6/' /etc/pacman.conf
 
-if [ $MULTILIB = "TRUE" || $MULTILIB = "True" || $MULTILIB = "true" ]
+if [[ $MULTILIB = "TRUE" || $MULTILIB = "True" || $MULTILIB = "true" ]]
 then
     info_print "Adding Multilib repository to pacman config"
     #Add multilib repo
@@ -459,7 +460,7 @@ then
 fi
 
 
-if [ $BLACKARCH = "TRUE" || $BLACKARCH = "True" || $BLACKARCH = "true" ]
+if [[ $BLACKARCH = "TRUE" || $BLACKARCH = "True" || $BLACKARCH = "true" ]]
 then
     info_print "Adding Blackarch repository to pacman config"
     cd /tmp
