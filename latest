@@ -11,10 +11,10 @@ BGREEN='\e[92m'
 BYELLOW='\e[93m'
 RESET='\e[0m'
 
-
+#leave these blank to be prompted
 KEYMAP = "uk"
 DISK = "/dev/nvme0n1"
-
+LOCALE = "en_GB.UTF-8"
 
 
 # Pretty print (function).
@@ -36,7 +36,7 @@ error_print () {
 virt_check () {
     hypervisor=$(systemd-detect-virt)
     case $hypervisor in
-        kvm )   info_print "KVM has been detected, setting up guest tools."
+           kvm )   info_print "KVM has been detected, setting up guest tools."
                 pacstrap /mnt qemu-guest-agent &>/dev/null
                 systemctl enable qemu-guest-agent --root=/mnt &>/dev/null
                 ;;
@@ -228,6 +228,11 @@ locale_selector () {
     esac
 }
 
+locale_setter () {
+    echo "$LOCALE" >> /etc/locale.gen
+}
+
+
 # User chooses the console keyboard layout (function).
 keyboard_selector () {
     input_print "Please insert the keyboard layout to use in console (enter empty to use US, or \"/\" to look up for keyboard layouts): "
@@ -298,8 +303,15 @@ until kernel_selector; do : ; done
 # User choses the network.
 until network_selector; do : ; done
 
-# User choses the locale.
-until locale_selector; do : ; done
+if [ -z "$LOCALE" ]
+then
+    # User choses the locale.
+    until locale_selector; do : ; done
+else
+    locale_setter   
+fi
+
+
 
 # User choses the hostname.
 until hostname_selector; do : ; done
