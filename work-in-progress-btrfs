@@ -2,10 +2,29 @@
 
 ##################### Variables ############################
 DRIVE="/dev/DRIVEID"
-export country="United Kingdom"
-export EFI_SIZE="500MB"
-export user="aidan"
-export"password"
+country="United Kingdom"
+EFI_SIZE="500M"
+user="aidan"
+
+# Encrypt everything (except /boot).  Leave blank to disable.
+ENCRYPT_DRIVE='TRUE'
+
+# Passphrase used to encrypt the drive (leave blank to be prompted).
+DRIVE_PASSPHRASE=''
+
+# Root password (leave blank to be prompted).
+ROOT_PASSWORD='password'
+
+# Main user to create (by default, added to wheel group, and others).
+USER_NAME='aidan'
+
+# The main user's password (leave blank to be prompted).
+USER_PASSWORD='password'
+
+# System timezone.
+TIMEZONE='Europe/London'
+
+KEYMAP='uk'
 
 ############################################################
 
@@ -18,7 +37,7 @@ loadkeys uk
 sgdisk --zap-all $DRIVE
 
 sgdisk --clear
-sgdisk --new=1:0:+500M --typecode=1:ef00 --change-name=1:EFI $DRIVE 
+sgdisk --new=1:0:${EFI_SIZE} --typecode=1:ef00 --change-name=1:EFI $DRIVE 
 sgdisk --new=2:0:+8G --typecode=2:8200 --change-name=2:cryptswap $DRIVE
 sgdisk --new=3:0:0 --typecode=3:8300 --change-name=3:cryptsystem $DRIVE
 
@@ -109,7 +128,7 @@ printf '\033c'
 pacman -S --noconfirm intel-ucode
 
 # Install video drivers if intel graphics is used
-pacman -S --noconfirm xf86-video-intel --noconfirm
+pacman -S --noconfirm xf86-video-intel libva-intel-driver --noconfirm
 
 #rm /bin/sh
 #ln -s dash /bin/sh
@@ -164,8 +183,35 @@ sed -i "/\[multilib\]/,/Include/"'s/^#//' /etc/pacman.conf
 sed -i "s/-j2/-j$(nproc)/;/^#MAKEFLAGS/s/^#//" /etc/makepkg.conf
 
 
-useradd -m -G power,audio,wheel,storage $user -s /usr/bin/zsh
-echo "${user}:${password}" | chpasswd
+create_user() {
+    local name="$1"; shift
+    local password="$1"; shift
+
+    useradd -m -G power,audio,wheel,storage,rfkill,network,video,scanner,adbusers,wireshark $user -s /usr/bin/zsh | passwd
+    echo -en "$password\n$password" | passwd "$name"
+}
+
+set_root_password() {
+    local password="$1"; shift
+
+    echo -en "$password\n$password" | passwd
+}
+
+if [ -z "$ROOT_PASSWORD" ]
+then
+    echo 'Enter the root password:'
+    stty -echo
+    read ROOT_PASSWORD
+    stty echo
+  fi
+echo 'Setting root password'
+
+
+set_root_password "$ROOT_PASSWORD"
+create_user "$USER_NAME" "$USER_PASSWORD"
+
+
+#echo "${user}:${password}" | chpasswd
 
 # Let users in wheel group run sudo commands without password for automated paru install
 sed -i '/^# %wheel ALL=(ALL) NOPASSWD: ALL/s/^# //' /etc/sudoers
