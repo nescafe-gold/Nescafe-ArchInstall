@@ -73,8 +73,14 @@ mount LABEL=EFI /mnt/boot
 ###################################################################
 
 grep -q "ILoveCandy" /etc/pacman.conf || sed -i "/#VerbosePkgLists/a ILoveCandy" /etc/pacman.conf
+
 sed -Ei "s/^#(ParallelDownloads).*/\1 = 5/;/^#Color$/s/#//" /etc/pacman.conf
-sed -i "s/^#BottomUp$/BottomUp/" /etc/paru.conf
+
+#add color to pacman commands 
+sed -i "/Color/"'s/^#//' /etc/pacman.conf
+
+#Add multilib repo
+sed -i "/\[multilib\]/,/Include/"'s/^#//' /etc/pacman.conf
 
 # Use all cores for compilation.
 sed -i "s/-j2/-j$(nproc)/;/^#MAKEFLAGS/s/^#//" /etc/makepkg.conf
@@ -145,7 +151,18 @@ grub-install --root-directory=/mnt $DRIVE
 grub-mkconfig -o /mnt/boot/grub/grub.cfg
 
 grep -q "ILoveCandy" /etc/pacman.conf || sed -i "/#VerbosePkgLists/a ILoveCandy" /etc/pacman.conf
+
 sed -Ei "s/^#(ParallelDownloads).*/\1 = 5/;/^#Color$/s/#//" /etc/pacman.conf
+
+#add color to pacman commands 
+sed -i "/Color/"'s/^#//' /etc/pacman.conf
+
+#Add multilib repo
+sed -i "/\[multilib\]/,/Include/"'s/^#//' /etc/pacman.conf
+
+# Use all cores for compilation.
+sed -i "s/-j2/-j$(nproc)/;/^#MAKEFLAGS/s/^#//" /etc/makepkg.conf
+
 
 useradd -m -G power,audio,wheel,storage $user -s /usr/bin/zsh
 echo "${user}:${password}" | chpasswd
@@ -157,11 +174,10 @@ git clone https://aur.archlinux.org/paru.git
 cd paru
 su -c "makepkg -si" -s /bin/sh $user
 cd /root/Nescafe-ArchInstall
+rm -r paru
 
 sed -i "s/^#BottomUp$/BottomUp/" /etc/paru.conf
 
-# Use all cores for compilation.
-sed -i "s/-j2/-j$(nproc)/;/^#MAKEFLAGS/s/^#//" /etc/makepkg.conf
 
 # Most important command! Get rid of the beep!
 rmmod pcspkr
@@ -174,3 +190,4 @@ sed -i '/^%wheel ALL=(ALL) NOPASSWD: ALL/s/^/# /' /etc/sudoers # Comment line wi
 
 
 #systemctl enable NetworkManager.service 
+#systemctl enable sshd
