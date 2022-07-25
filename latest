@@ -146,22 +146,27 @@ network_installer () {
 
 # User enters a password for the LUKS Container (function).
 lukspass_selector () {
-    input_print "Please enter a password for the LUKS container (you're not going to see the password): "
-    read -r -s lukspass
-    if [[ -z "$lukspass" ]]; then
+    if [ -z "$ENCRYPTION_PASSWORD" ]
+    then
+        input_print "Please enter a password for the LUKS container (you're not going to see the password): "
+        read -r -s lukspass
+        if [[ -z "$lukspass" ]]; then
+            echo
+            error_print "You need to enter a password for the LUKS Container, please try again."
+            return 1
+        fi
         echo
-        error_print "You need to enter a password for the LUKS Container, please try again."
-        return 1
+        input_print "Please enter the password for the LUKS container again (you're not going to see the password): "
+        read -r -s lukspass2
+        echo
+        if [[ "$lukspass" != "$lukspass2" ]]; then
+            error_print "Passwords don't match, please try again."
+            return 1
+        fi
+        return 0
+    else
+        lukspass="${ENCRYPTION_PASSWORD}"
     fi
-    echo
-    input_print "Please enter the password for the LUKS container again (you're not going to see the password): "
-    read -r -s lukspass2
-    echo
-    if [[ "$lukspass" != "$lukspass2" ]]; then
-        error_print "Passwords don't match, please try again."
-        return 1
-    fi
-    return 0
 }
 
 # Setting up a password for the user account (function).
@@ -173,6 +178,9 @@ username_selector () {
         if [[ -z "$username" ]]; then
             return 0
         fi
+    else
+        username="${USER_NAME}"
+    fi
 }
 
 userpass_selector() {
@@ -347,13 +355,7 @@ until keyboard_selector; do : ; done
 until disk_selector; do : ; done
 
 # If ENCRYPTION_PASSWORD variable is empty then ask for the encryption password
-if [ -z "$ENCRYPTION_PASSWORD" ]
-then
-    until lukspass_selector; do : ; done
-else
-    lukspass="${ENCRYPTION_PASSWORD}" 
-fi
-
+until lukspass_selector; do : ; done
 
 # Setting up the kernel.
 until kernel_selector; do : ; done
