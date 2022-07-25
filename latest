@@ -16,6 +16,10 @@ KEYMAP="uk"
 DISK="/dev/nvme0n1"
 LOCALE="en_GB.UTF-8"
 HOSTNAME="TEST-ARCH"
+# Can be either true, True, TRUE or false, False, FALSE
+BLACKARCH="True"
+MULTILIB="True"
+
 
 # Pretty print (function).
 info_print () {
@@ -331,9 +335,32 @@ if ! [[ "${disk_response,,}" =~ ^(yes|y)$ ]]; then
     exit
 fi
 
+# If multilib not equal False 
+if [ -z MULTILIB ]
+then
+    # Ask if you want to add multilib repositories
+    input_print "Do you want to add the Blackarch repos to your pacman config? [y/N]?: "
+    read -r disk_response
+    if ! [[ "${disk_response,,}" =~ ^(yes|y)$ ]]; then
+        continue
+    else
+        MULTILIB="True"
+    fi
+fi
+
+# Ask if you want to add Blackarch mirrors
+if [ -z BLACKARCH ]
+then
+    input_print "Do you want to add the Blackarch repos to your pacman config? [y/N]?: "
+    read -r disk_response
+    if ! [[ "${disk_response,,}" =~ ^(yes|y)$ ]]; then
+        continue
+    else
+        BLACKARCH="True"
+    fi
+fi
 
 #################### Actual Install ###############
-
 info_print "Wiping $DISK."
 wipefs -af "$DISK" &>/dev/null
 # Zap drive and clear the gpt partition & create a new one
@@ -415,9 +442,23 @@ microcode_detector
 info_print "Enabling colours, animations, and parallel downloads for pacman."
 sed -Ei 's/^#(Color)$/\1\nILoveCandy/;s/^#(ParallelDownloads).*/\1 = 6/' /etc/pacman.conf
 
-#Add multilib repo
-info_print "Adding multilib repository for pacman."
-sed -i "/\[multilib\]/,/Include/"'s/^#//' /etc/pacman.conf
+if [ $MULTILIB = "TRUE" || $MULTILIB = "True" || $MULTILIB = "true" ]
+then
+    #Add multilib repo
+    info_print "Adding multilib repository for pacman."
+    sed -i "/\[multilib\]/,/Include/"'s/^#//' /etc/pacman.conf
+fi
+
+
+if [ $BLACKARCH = "TRUE" || $BLACKARCH = "True" || $BLACKARCH = "true" ]
+then
+    cd /tmp
+    curl -O https://blackarch.org/strap.sh
+    chmod +x strap.sh
+    ./strap.sh
+    rm ./strap.sh
+    cd
+fi
 
 # Use all cores for compilation.
 info_print "Configure makepkg.conf to compile packages with all CPU cores"
@@ -534,6 +575,9 @@ arch-chroot /mnt cd /root/Nescafe-ArchInstall
 arch-chroot /mnt rm -r /root/paru
 
 sed -i "s/^#BottomUp$/BottomUp/" /mnt/etc/paru.conf
+
+
+
 
 
 # Most important command! Get rid of the beep!
