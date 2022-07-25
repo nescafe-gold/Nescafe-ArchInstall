@@ -139,11 +139,19 @@ sed -i '/^HOOKS=/c\HOOKS=(base systemd autodetect sd-vconsole keybard keymap mod
 mkinitcpio -p linux
 mkinitcpio -p linux-lts
 
+pacman -S --needed grub
 grub-install --root-directory=/mnt $DRIVE
 grub-mkconfig -o /mnt/boot/grub/grub.cfg
 
 grep -q "ILoveCandy" /etc/pacman.conf || sed -i "/#VerbosePkgLists/a ILoveCandy" /etc/pacman.conf
 sed -Ei "s/^#(ParallelDownloads).*/\1 = 5/;/^#Color$/s/#//" /etc/pacman.conf
+
+
+git clone https://aur.archlinux.org/paru.git 
+cd paru
+makepkg -si
+cd /root/Nescafe-ArchInstall
+
 sed -i "s/^#BottomUp$/BottomUp/" /etc/paru.conf
 
 # Use all cores for compilation.
