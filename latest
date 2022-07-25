@@ -442,7 +442,7 @@ EFI="/dev/disk/by-partlabel/${EFI_LABEL}"
 CRYPTSWAP="/dev/disk/by-partlabel/${ENCRYPTED_SWAP_LABEL}"
 CRYPTSYSTEM="/dev/disk/by-partlabel/${ENCRYPTED_BTRFS_VOLUMES_LABEL}"
 
-SWAP="/dev/mapper/${CRYPTSWAP}"
+SWAP="/dev/mapper/${ENCRYPTED_SWAP_LABEL}"
 BTRFS="/dev/mapper/${CRYPTSYSTEM}"
 
 # Informing the Kernel of the changes.
