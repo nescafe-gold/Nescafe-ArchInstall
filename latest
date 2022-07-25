@@ -33,6 +33,7 @@ ENCRYPTION_PASSWORD="test_password"
 ### User accounts
 USER_NAME="aidan"
 USER_PASSWORD="test"
+ROOT_PASSWORD="test"
 
 # Can be either true, True, TRUE or false, False, FALSE
 BLACKARCH="True"
@@ -204,22 +205,27 @@ userpass_selector() {
 
 # Setting up a password for the root account (function).
 rootpass_selector () {
-    input_print "Please enter a password for the root user (you're not going to see it): "
-    read -r -s rootpass
-    if [[ -z "$rootpass" ]]; then
+    if [ -z "$ROOT_PASSWORD" ]
+    then
+        input_print "Please enter a password for the root user (you're not going to see it): "
+        read -r -s rootpass
+        if [[ -z "$rootpass" ]]; then
+            echo
+            error_print "You need to enter a password for the root user, please try again."
+            return 1
+        fi
         echo
-        error_print "You need to enter a password for the root user, please try again."
-        return 1
+        input_print "Please enter the password again (you're not going to see it): " 
+        read -r -s rootpass2
+        echo
+        if [[ "$rootpass" != "$rootpass2" ]]; then
+            error_print "Passwords don't match, please try again."
+            return 1
+        fi
+        return 0
+    else
+        rootpass="${ROOT_PASSWORD}"
     fi
-    echo
-    input_print "Please enter the password again (you're not going to see it): " 
-    read -r -s rootpass2
-    echo
-    if [[ "$rootpass" != "$rootpass2" ]]; then
-        error_print "Passwords don't match, please try again."
-        return 1
-    fi
-    return 0
 }
 
 # Microcode detector (function).
@@ -359,9 +365,8 @@ until locale_selector; do : ; done
 
 until hostname_selector; do : ; done
 
-
 # Prompt to create username if USER_NAME variable is empty. Also give option to skip creating a username
-username_selector 
+username_selector
 # If user chose to create a username and if the USER_PASSWORD variable is empty then prompt for a password
 until userpass_selector; do : ; done
 until rootpass_selector; do : ; done
