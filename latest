@@ -408,7 +408,7 @@ mount $EFI /mnt/boot
 
 # Checking the microcode to install.
 info_print "Detecting whether you have Intel or AMD CPU to install the necessary packages later"
-info_print "$microcode will be installed later"
+info_print "${microcode} will be installed later"
 microcode_detector
 
 
