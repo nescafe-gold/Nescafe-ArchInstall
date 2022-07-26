@@ -468,9 +468,10 @@ btrfs sub create /mnt/arch/@cache
 
 info_print "Creating extra subvolumes"
 # Extra subvolumes (not necessary)
+mkdir -p /mnt/home/$username/{Documents,ProjectsNStuff}
 mkdir /mnt/common
-btrfs sub create /mnt/common/@Documents
-btrfs sub create /mnt/common/@ProjectsNStuff
+btrfs sub create /mnt/$username/@Documents
+btrfs sub create /mnt/$username/@ProjectsNStuff
 
 info_print "Unmounting /mnt"
 # Remember to umount
