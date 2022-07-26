@@ -541,8 +541,7 @@ pacman -Syy reflector --needed --noconfirm
 reflector --verbose --country "$country" --age 12 --latest 10 --sort rate --protocol https --save /etc/pacman.d/mirrorlist 
 pacman -Syy --noconfirm 
 
-virt_check
-
+#virt_check
 
 # Pacstrap (setting up a base system onto the new root).
 info_print "Installing the base system (it may take a while)."
