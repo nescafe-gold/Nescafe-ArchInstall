@@ -436,8 +436,8 @@ partprobe "$DISK"
 
 # Creating a LUKS Container for the root partition.
 info_print "Creating LUKS Container for the root partition."
-echo -n "$lukspass" | cryptsetup luksFormat $ENCRYPTION_OPTIONS "$CRYPTSYSTEM" -d - 
-echo -n "$lukspass" | cryptsetup --allow-discards --perf-no_read_workqueue --perf-no_write_workqueue --persistent open "$CRYPTSYSTEM" $ENCRYPTED_BTRFS_VOLUMES_LABEL -d - 
+echo -n "$lukspass" | cryptsetup luksFormat $ENCRYPTION_OPTIONS /dev/nvme0n1p2 -d - 
+echo -n "$lukspass" | cryptsetup --allow-discards --perf-no_read_workqueue --perf-no_write_workqueue --persistent open /dev/nvme0n1p2 $ENCRYPTED_BTRFS_VOLUMES_LABEL -d - 
 
 # Formatting the EFI as FAT32.
 info_print "Formatting the EFI Partition as FAT32." 
