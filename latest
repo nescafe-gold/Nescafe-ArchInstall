@@ -498,12 +498,9 @@ reflector --age 12 --latest 10 --sort rate --protocol https --save /etc/pacman.d
 
 info_print "syncing repositories and downloading keyring"
 pacman -Syy archlinux-keyring --noconfirm 
-
-info_print "Updating keyring"
-
 # Pacstrap (setting up a base system onto the new root).
 info_print "Installing the base system (it may take a while)."
-pacstrap /mnt base "$kernel" "$microcode" linux-firmware "$kernel"-headers btrfs-progs rsync snapper reflector snap-pac zram-generator git zsh gptfdisk booster zstd iwd networkmanager mesa vulkan-intel libva-mesa-driver openssh mesa-vdpau libvirt refind rustup zsh sshguard neovim nano rust-analyzer xdg-user-dirs zram-generator pigz pbzip2 snapper a52dec faac iptables-nft git faad2 flac jasper grim libmad libmpeg2 libtheora libvorbis compsize nftables wavpack xvidcore libde265 polkit-gnome mako slurp libxv noto-fonts btrfs-progs udiskie imv mpv lrzip unrar zip powertop x264 lzip apparmor lz4 wireplumber lzop p7zip noto-fonts-emoji ttf-font-awesome libva-utils man-db chrony dbus-broker lame blueman irqbalance pipewire{,-pulse,-jack,-alsa} --noconfirm
+pacstrap /mnt base base-devel "$kernel" "$microcode" linux-firmware "$kernel"-headers btrfs-progs rsync snapper reflector snap-pac zram-generator git zsh gptfdisk booster zstd iwd networkmanager mesa vulkan-intel libva-mesa-driver openssh mesa-vdpau libvirt refind rustup zsh sshguard neovim nano rust-analyzer xdg-user-dirs zram-generator pigz pbzip2 snapper a52dec faac iptables-nft git faad2 flac jasper grim libmad libmpeg2 libtheora libvorbis compsize nftables wavpack xvidcore libde265 polkit-gnome mako slurp libxv noto-fonts btrfs-progs udiskie imv mpv lrzip unrar zip powertop x264 lzip apparmor lz4 wireplumber lzop p7zip noto-fonts-emoji ttf-font-awesome libva-utils man-db chrony dbus-broker lame blueman irqbalance pipewire{,-pulse,-jack,-alsa} --noconfirm
 
 #archlinux-keyring
 
@@ -511,25 +508,48 @@ pacstrap /mnt base "$kernel" "$microcode" linux-firmware "$kernel"-headers btrfs
 info_print "Generating a new fstab."
 genfstab -L -p /mnt >> /mnt/etc/fstab
 
-# Virtualization check.
-info_print "Check if you are installing on a virtual machine. If you are then the you will get the option to choose which one. Then the necessary packages will will be installed later."
 
-# Setting up the network.
-info_print "Setup the network based upon the choice you made"
+info_print "optimizing your makepkg conf"
+# Optimize Makepkg
+arch-chroot /mnt sed -i 's/^CXXFLAGS.*/CXXFLAGS="-march=native -mtune=native -O2 -pipe -fstack-protector-strong --param=ssp-buffer-size=4 -fno-plt"/' /etc/makepkg.conf 
+arch-chroot /mnt sed -i 's/^#RUSTFLAGS.*/RUSTFLAGS="-C opt-level=2 -C target-cpu=native"/' /etc/makepkg.conf
+arch-chroot /mnt sed -i 's/^#BUILDDIR.*/BUILDDIR=\/tmp\/makepkg/' /etc/makepkg.conf 
+arch-chroot /mnt sed -i 's/^#MAKEFLAGS.*/MAKEFLAGS="-j$(getconf _NPROCESSORS_ONLN) --quiet"/' /etc/makepkg.conf
+arch-chroot /mnt sed -i 's/^COMPRESSGZ.*/COMPRESSGZ=(pigz -c -f -n)/' /etc/makepkg.conf 
+arch-chroot /mnt sed -i 's/^COMPRESSBZ2.*/COMPRESSBZ2=(pbzip2 -c -f)/' /etc/makepkg.conf 
+arch-chroot /mnt sed -i 's/^COMPRESSXZ.*/COMPRESSXZ=(xz -T "$(getconf _NPROCESSORS_ONLN)" -c -z --best -)/' /etc/makepkg.conf 
+arch-chroot /mnt sed -i 's/^COMPRESSZST.*/COMPRESSZST=(zstd -c -z -q --ultra -T0 -22 -)/' /etc/makepkg.conf 
+arch-chroot /mnt sed -i 's/^COMPRESSLZ.*/COMPRESSLZ=(lzip -c -f)/' /etc/makepkg.conf 
+arch-chroot /mnt sed -i 's/^COMPRESSLRZ.*/COMPRESSLRZ=(lrzip -9 -q)/' /etc/makepkg.conf
+arch-chroot /mnt sed -i 's/^COMPRESSLZO.*/COMPRESSLZO=(lzop -q --best)/' /etc/makepkg.conf
+arch-chroot /mnt sed -i 's/^COMPRESSZ.*/COMPRESSZ=(compress -c -f)/' /etc/makepkg.conf
+arch-chroot /mnt sed -i 's/^COMPRESSLZ4.*/COMPRESSLZ4=(lz4 -q --best)/' /etc/makepkg.conf
+# Use all cores for compilation.
+info_print "Configure makepkg.conf to compile packages with all CPU cores"
+arch-chroot /mnt sed -i "s/-j2/-j$(nproc)/;/^#MAKEFLAGS/s/^#//" /etc/makepkg.conf
 
-
-# Pacman eye-candy features.
-info_print "Enabling colours, animations, and parallel downloads for pacman."
+info_print "Customizing pacman config" 
+# Pacman
 arch-chroot /mnt sed -i 's/#UseSyslog/UseSyslog/' /etc/pacman.conf 
 arch-chroot /mnt sed -i 's/#Color/Color\\\nILoveCandy/' /etc/pacman.conf 
 arch-chroot /mnt sed -i 's/Color\\/Color/' /etc/pacman.conf 
-arch-chroot /mnt sed -i 's/#TotalDownload/TotalDownload/' /etc/pacman.conf 
 arch-chroot /mnt sed -i 's/#CheckSpace/CheckSpace/' /etc/pacman.conf
-arch-chroot /mnt sed -i "s/^#ParallelDownloads = 5$/ParallelDownloads = 8/" /etc/pacman.conf
+arch-chroot /mnt sed -i "s/^#ParallelDownloads = 5$/ParallelDownloads = 6/" /etc/pacman.conf
 
-# Use all cores for compilation.
-info_print "Configure makepkg.conf to compile packages with all CPU cores"
-sed -i "s/-j2/-j$(nproc)/;/^#MAKEFLAGS/s/^#//" /etc/makepkg.conf
+info_print "Adding Multilib repository to pacman config"
+if [[ $MULTILIB = "TRUE" || $MULTILIB = "True" || $MULTILIB = "true" ]]
+then
+    arch-chroot /mnt sed -i "/\[multilib\]/,/Include/"'s/^#//' /etc/pacman.conf
+fi
+
+info_print "Adding Blackarch repository to pacman config"
+if [[ $BLACKARCH = "TRUE" || $BLACKARCH = "True" || $BLACKARCH = "true" ]]
+then
+    arch-chroot cd /tmp; curl -O https://blackarch.org/strap.sh; chmod +x strap.sh; ./strap.sh; rm ./strap.sh; cd  
+fi
+
+
+
 
 info_print "Updating pacman mirrors"
 # Update Mirrors
@@ -537,12 +557,12 @@ pacman -Syy reflector --needed --noconfirm
 arch-chroot /mnt reflector --age 12 --latest 10 --sort rate --protocol https --save /etc/pacman.d/mirrorlist 
 
 # Configuring /etc/mkinitcpio.conf.
-info_print "Configuring /etc/mkinitcpio.conf."
-arch-chroot /mnt sed -i 's/^HOOKS.*/HOOKS=(base systemd udev autodetect keyboard keymap modconf block sd-encrypt resume filesystems fsck)/' /etc/mkinitcpio.conf
-arch-chroot /mnt sed -i 's/BINARIES=()/BINARIES=("\/usr\/bin\/btrfs")/' /etc/mkinitcpio.conf
-arch-chroot /mnt sed -i 's/MODULES=()/MODULES=(i915 btrfs)/' /etc/mkinitcpio.conf && \
-arch-chroot /mnt sed -i 's/#COMPRESSION="lz4"/COMPRESSION="lz4"/' /etc/mkinitcpio.conf && \
-arch-chroot /mnt sed -i 's/#COMPRESSION_OPTIONS=()/COMPRESSION_OPTIONS=(-9)/' /etc/mkinitcpio.conf && \
+#info_print "Configuring /etc/mkinitcpio.conf."
+#arch-chroot /mnt sed -i 's/^HOOKS.*/HOOKS=(base systemd udev autodetect keyboard keymap modconf block sd-encrypt resume filesystems fsck)/' /etc/mkinitcpio.conf
+#arch-chroot /mnt sed -i 's/BINARIES=()/BINARIES=("\/usr\/bin\/btrfs")/' /etc/mkinitcpio.conf
+#arch-chroot /mnt sed -i 's/MODULES=()/MODULES=(i915 btrfs)/' /etc/mkinitcpio.conf && \
+#arch-chroot /mnt sed -i 's/#COMPRESSION="lz4"/COMPRESSION="lz4"/' /etc/mkinitcpio.conf && \
+#arch-chroot /mnt sed -i 's/#COMPRESSION_OPTIONS=()/COMPRESSION_OPTIONS=(-9)/' /etc/mkinitcpio.conf && \
 
 # if you have more than 1 btrfs drive
 #sed -i 's/^HOOKS.*/HOOKS=(base systemd udev autodetect keyboard keymap modconf block sd-encrypt resume btrfs filesystems fsck)/' /etc/mkinitcpio.conf
@@ -565,18 +585,7 @@ arch-chroot /mnt echo "$kblayout" > /etc/vconsole.conf
 info_print "Setting up timezone"
 arch-chroot /mnt ln -sf /usr/share/zoneinfo/${TIMEZONE}
 
-if [ -z "$NTP" ]
-then
-    # Ask if you want to add multilib repositories
-    input_print "Do you want to add the enable NTP to sync your system time with the internet? [y/N]?: "
-    read -r ntp_boolean
-    if ! [[ "${ntp_boolean,,}" =~ ^(yes|y)$ ]]
-    then
-        arch-chroot /mnt timedatectl set-ntp true
-    fi
-else
-    ntp_boolean="${NTP}"  
-fi
+arch-chroot /mnt timedatectl set-ntp true
 
 # Generate locales
 info_print "Generating locales"
@@ -615,24 +624,14 @@ fi
 info_print "Set sudo timestamp_timeout default to 0 "
 arch-chroot /mnt echo "Defaults timestamp_timeout=0" >> /etc/sudoers
 
-info_print "Adding Multilib repository to pacman config"
-if [[ $MULTILIB = "TRUE" || $MULTILIB = "True" || $MULTILIB = "true" ]]
-then
-    arch-chroot /mnt sed -i "/\[multilib\]/,/Include/"'s/^#//' /etc/pacman.conf
-fi
-
-info_print "Adding Blackarch repository to pacman config"
-if [[ $BLACKARCH = "TRUE" || $BLACKARCH = "True" || $BLACKARCH = "true" ]]
-then
-    arch-chroot cd /tmp; curl -O https://blackarch.org/strap.sh; chmod +x strap.sh; ./strap.sh; rm ./strap.sh; cd  
-fi
-
 info_print "Installing Paru"
 arch-chroot clone https://aur.archlinux.org/paru.git /root/paru; cd /root/paru; su -c "makepkg -si" -s /bin/sh $username; cd /root/Nescafe-ArchInstall; rm -r /root/paru
 
 info_print "Enabling BottomUp setting in paru config"
 arch-chroot /mnt sed -i "s/^#BottomUp$/BottomUp/" /etc/paru.conf
 
+# Virtualization check.
+#info_print "Check if you are installing on a virtual machine. If you are then the you will get the option to choose which one. Then the necessary packages will will be installed later."
 #arch-chroot /mnt virt_check
 arch chroot /mnt su $username -c "sudo refind-install"
 
@@ -760,23 +759,6 @@ EOF
 
 
 
-    # Snapper configuration.
-    #umount /.snapshots
-    #rm -r /.snapshots
-    #snapper --no-dbus -c root create-config /
-    #btrfs subvolume delete /.snapshots 
-    #mkdir /.snapshots
-    #mount -a 
-    #chmod 750 /.snapshots
-    # Installing GRUB.
-    #grub-install --target=x86_64-efi --efi-directory=/boot/ --bootloader-id=GRUB 
-    # Creating grub config file.
-    #grub-mkconfig -o /boot/grub/grub.cfg 
-EOF
-
-
-
-# Boot backup hook.
 info_print "Configuring /boot backup when pacman transactions are made."
 mkdir -p /mnt/etc/pacman.d/hooks
 cat > /mnt/etc/pacman.d/hooks/50-bootbackup.hook <<EOF
@@ -818,28 +800,6 @@ zram-size = ram / 4
 EOF
 
 
-# Optimize Makepkg
-sed -i 's/^CXXFLAGS.*/CXXFLAGS="-march=native -mtune=native -O2 -pipe -fstack-protector-strong --param=ssp-buffer-size=4 -fno-plt"/' /mnt/etc/makepkg.conf 
-sed -i 's/^#RUSTFLAGS.*/RUSTFLAGS="-C opt-level=2 -C target-cpu=native"/' /mnt/etc/makepkg.conf
-sed -i 's/^#BUILDDIR.*/BUILDDIR=\/tmp\/makepkg/' /mnt/etc/makepkg.conf 
-sed -i 's/^#MAKEFLAGS.*/MAKEFLAGS="-j$(getconf _NPROCESSORS_ONLN) --quiet"/' /mnt/etc/makepkg.conf
-sed -i 's/^COMPRESSGZ.*/COMPRESSGZ=(pigz -c -f -n)/' /mnt/etc/makepkg.conf 
-sed -i 's/^COMPRESSBZ2.*/COMPRESSBZ2=(pbzip2 -c -f)/' /mnt/etc/makepkg.conf 
-sed -i 's/^COMPRESSXZ.*/COMPRESSXZ=(xz -T "$(getconf _NPROCESSORS_ONLN)" -c -z --best -)/' /mnt/etc/makepkg.conf 
-sed -i 's/^COMPRESSZST.*/COMPRESSZST=(zstd -c -z -q --ultra -T0 -22 -)/' /mnt/etc/makepkg.conf 
-sed -i 's/^COMPRESSLZ.*/COMPRESSLZ=(lzip -c -f)/' /mnt/etc/makepkg.conf 
-sed -i 's/^COMPRESSLRZ.*/COMPRESSLRZ=(lrzip -9 -q)/' /mnt/etc/makepkg.conf
-sed -i 's/^COMPRESSLZO.*/COMPRESSLZO=(lzop -q --best)/' /mnt/etc/makepkg.conf
-sed -i 's/^COMPRESSZ.*/COMPRESSZ=(compress -c -f)/' /mnt/etc/makepkg.conf
-sed -i 's/^COMPRESSLZ4.*/COMPRESSLZ4=(lz4 -q --best)/' /mnt/etc/makepkg.conf
-
-
-# Pacman
-sed -i 's/#UseSyslog/UseSyslog/' /mnt/etc/pacman.conf 
-sed -i 's/#Color/Color\\\nILoveCandy/' /mnt/etc/pacman.conf 
-sed -i 's/Color\\/Color/' /mnt/etc/pacman.conf 
-sed -i 's/#CheckSpace/CheckSpace/' /mnt/etc/pacman.conf
-sed -i "s/^#ParallelDownloads = 5$/ParallelDownloads = 6/" /mnt/etc/pacman.conf
 
 
 # Chrony
@@ -869,6 +829,7 @@ chmod 700 /mnt/etc/{iptables,arptables,nftables.conf}
 echo "auth optional pam_faildelay.so delay=4000000" >> /mnt/etc/pam.d/system-login
 echo "tcp_bbr" > /mnt/etc/modules-load.d/bbr.conf 
 echo "write-cache" > /mnt/etc/apparmor/parser.conf
+
 cat << EOF >/mnt/etc/sysctl.d/99-sysctl-performance-tweaks.conf
 # The swappiness sysctl parameter represents the kernel's preference (or avoidance) of swap space. Swappiness can have a value between 0 and 100, the default value is 60. 
 # A low value causes the kernel to avoid swapping, a higher value causes the kernel to try to use swap space. Using a low value on sufficient memory is known to improve responsiveness on many systems.
@@ -1014,13 +975,11 @@ rustup default stable
 paru --noremovemake --noconfirm -S memavaild prelockd nohang-git refind-btrfs just greetd greetd-gtkgreeter
 paru --noremovemake --noconfirm -S linux-xanmod-tt linux-xanmod-tt-headers
 
-
 # Add auto-cpu-freq
 git clone https://github.com/AdnanHodzic/auto-cpufreq.git
 cd auto-cpufreq
 ./auto-cpufreq-installer
 cd
-
 
 #Add rEFInd theme
 mkdir -p /mnt/boot/EFI/refind/themes  
