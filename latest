@@ -494,7 +494,7 @@ sed -i "s/-j2/-j$(nproc)/;/^#MAKEFLAGS/s/^#//" /etc/makepkg.conf
 info_print "Updating pacman mirrors"
 # Update Mirrors
 pacman -Syy reflector --needed --noconfirm 
-reflector --age 12 --latest 100 --protocol https --sort rate --save /etc/pacman.d/mirrorlist 
+reflector --age 12 --latest 20 --sort rate --protocol https --save /etc/pacman.d/mirrorlist 
 
 info_print "syncing repositories and downloading keyring"
 pacman -Syy archlinux-keyring --noconfirm 
@@ -551,7 +551,7 @@ fi
 info_print "Updating pacman mirrors"
 # Update Mirrors
 pacman -Syy reflector --needed --noconfirm 
-arch-chroot /mnt reflector --age 12 --latest 10 --sort rate --protocol https --save /etc/pacman.d/mirrorlist 
+arch-chroot /mnt reflector --age 12 --latest 100 --sort rate --protocol https --save /etc/pacman.d/mirrorlist 
 
 # Configuring /etc/mkinitcpio.conf.
 #info_print "Configuring /etc/mkinitcpio.conf."
