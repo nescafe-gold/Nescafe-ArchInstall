@@ -457,8 +457,8 @@ for subvol in '' "${subvols[@]}"; do
     btrfs su cr /mnt/@"$subvol" 
 done
 
-mkdir /mnt/home/${username}/ProjectsNStuff
-mkdir /mnt/home/${username}/Documents
+mkdir -p /mnt/home/${username}/ProjectsNStuff
+mkdir -p/mnt/home/${username}/Documents
 
 # Extra subvolumes (not necessary)
 btrfs sub create /mnt/common/@ProjectsNStuff 
