@@ -123,28 +123,6 @@ network_selector () {
     return 0
 }
 
-# Installing the chosen networking method to the system (function).
-network_installer () {
-    case $network_choice in
-        1 ) info_print "Installing and enabling IWD."
-            pacstrap /mnt iwd 
-            systemctl enable iwd --root=/mnt &>/dev/null
-            ;;
-        2 ) info_print "Installing and enabling NetworkManager."
-            pacstrap /mnt networkmanager 
-            systemctl enable NetworkManager --root=/mnt &>/dev/null
-            ;;
-        3 ) info_print "Installing and enabling wpa_supplicant and dhcpcd."
-            pacstrap /mnt wpa_supplicant dhcpcd 
-            systemctl enable wpa_supplicant --root=/mnt 
-            systemctl enable dhcpcd --root=/mnt &>/dev/null
-            ;;
-        4 ) info_print "Installing dhcpcd."
-            pacstrap /mnt dhcpcd 
-            systemctl enable dhcpcd --root=/mnt &>/dev/null
-    esac
-}
-
 # User enters a password for the LUKS Container (function).
 lukspass_selector () {
     if [ -z "$ENCRYPTION_PASSWORD" ]
@@ -527,8 +505,6 @@ sed -i 's/Color\\/Color/' /etc/pacman.conf
 sed -i 's/#TotalDownload/TotalDownload/' /etc/pacman.conf 
 sed -i 's/#CheckSpace/CheckSpace/' /etc/pacman.conf
 sed -i "s/^#ParallelDownloads = 5$/ParallelDownloads = 8/" /etc/pacman.conf
-#add paralell downloads line
-
 
 # Use all cores for compilation.
 info_print "Configure makepkg.conf to compile packages with all CPU cores"
@@ -559,15 +535,33 @@ info_print "Check if you are installing on a virtual machine. If you are then th
 
 # Setting up the network.
 info_print "Setup the network based upon the choice you made"
-network_installer
+
+
+# Pacman eye-candy features.
+info_print "Enabling colours, animations, and parallel downloads for pacman."
+arch-chroot /mnt sed -i 's/#UseSyslog/UseSyslog/' /etc/pacman.conf 
+arch-chroot /mnt sed -i 's/#Color/Color\\\nILoveCandy/' /etc/pacman.conf 
+arch-chroot /mnt sed -i 's/Color\\/Color/' /etc/pacman.conf 
+arch-chroot /mnt sed -i 's/#TotalDownload/TotalDownload/' /etc/pacman.conf 
+arch-chroot /mnt sed -i 's/#CheckSpace/CheckSpace/' /etc/pacman.conf
+arch-chroot /mnt sed -i "s/^#ParallelDownloads = 5$/ParallelDownloads = 8/" /etc/pacman.conf
+
+# Use all cores for compilation.
+info_print "Configure makepkg.conf to compile packages with all CPU cores"
+sed -i "s/-j2/-j$(nproc)/;/^#MAKEFLAGS/s/^#//" /etc/makepkg.conf
+
+info_print "Updating pacman mirrors"
+# Update Mirrors
+pacman -Syy reflector --needed --noconfirm 
+arch-chroot /mnt reflector --age 12 --latest 10 --sort rate --protocol https --save /etc/pacman.d/mirrorlist 
 
 # Configuring /etc/mkinitcpio.conf.
 info_print "Configuring /etc/mkinitcpio.conf."
-sed -i 's/^HOOKS.*/HOOKS=(base systemd udev autodetect keyboard keymap modconf block sd-encrypt resume filesystems fsck)/' /etc/mkinitcpio.conf
-sed -i 's/BINARIES=()/BINARIES=("\/usr\/bin\/btrfs")/' /etc/mkinitcpio.conf
-sed -i 's/MODULES=()/MODULES=(i915 btrfs)/' /etc/mkinitcpio.conf && \
-sed -i 's/#COMPRESSION="lz4"/COMPRESSION="lz4"/' /etc/mkinitcpio.conf && \
-sed -i 's/#COMPRESSION_OPTIONS=()/COMPRESSION_OPTIONS=(-9)/' /etc/mkinitcpio.conf && \
+arch-chroot /mnt sed -i 's/^HOOKS.*/HOOKS=(base systemd udev autodetect keyboard keymap modconf block sd-encrypt resume filesystems fsck)/' /etc/mkinitcpio.conf
+arch-chroot /mnt sed -i 's/BINARIES=()/BINARIES=("\/usr\/bin\/btrfs")/' /etc/mkinitcpio.conf
+arch-chroot /mnt sed -i 's/MODULES=()/MODULES=(i915 btrfs)/' /etc/mkinitcpio.conf && \
+arch-chroot /mnt sed -i 's/#COMPRESSION="lz4"/COMPRESSION="lz4"/' /etc/mkinitcpio.conf && \
+arch-chroot /mnt sed -i 's/#COMPRESSION_OPTIONS=()/COMPRESSION_OPTIONS=(-9)/' /etc/mkinitcpio.conf && \
 
 # if you have more than 1 btrfs drive
 #sed -i 's/^HOOKS.*/HOOKS=(base systemd udev autodetect keyboard keymap modconf block sd-encrypt resume btrfs filesystems fsck)/' /etc/mkinitcpio.conf
@@ -582,9 +576,9 @@ sed -i 's/#COMPRESSION_OPTIONS=()/COMPRESSION_OPTIONS=(-9)/' /etc/mkinitcpio.con
 ### Configure the system
 # Configure selected locale and console keymap
 info_print "Configure locales & keymap"
-sed -i "/^#$locale/s/^#//" /mnt/etc/locale.gen
-echo "LANG=$locale" > /mnt/etc/locale.conf
-echo "$kblayout" > /mnt/etc/vconsole.conf
+arch-chroot /mnt sed -i "/^#$locale/s/^#//" /etc/locale.gen
+arch-chroot /mnt echo "LANG=$locale" > /etc/locale.conf
+arch-chroot /mnt echo "$kblayout" > /etc/vconsole.conf
 
 # Setting up timezones
 info_print "Setting up timezone"
@@ -613,13 +607,11 @@ arch-chroot /mnt hwclock --systohc
 
 # Setting up the hostname.
 info_print "Configure Hostname"
-echo "$hostname" > /mnt/etc/hostname
+arch-chroot /mnt echo "$hostname" > /etc/hostname
 
 # Setting up hosts file.
 info_print "Setting up hosts file at /etc/hosts"
-echo -e "\n127.0.0.1\tlocalhost\n::1\t\tlocalhost\n127.0.1.1\t${hostname}.localdomain\t$hostname" >> /mnt/etc/hosts
-
-
+arch-chroot /mnt echo -e "\n127.0.0.1\tlocalhost\n::1\t\tlocalhost\n127.0.1.1\t${hostname}.localdomain\t$hostname" >> /etc/hosts
 
 # Setting root password.
 info_print "Setting root password."
@@ -636,16 +628,16 @@ if [[ -n "$username" ]]; then
     echo "$username:$userpass" | arch-chroot /mnt chpasswd
 
     info_print "make user $username not need password for sudo commands temporarily (only for this install)"
-    sed -i '/^# %wheel ALL=(ALL) NOPASSWD: ALL/s/^# //' /mnt/etc/sudoers
+    arch-chroot /mnt sed -i '/^# %wheel ALL=(ALL) NOPASSWD: ALL/s/^# //' /etc/sudoers
 fi
 
 info_print "Set sudo timestamp_timeout default to 0 "
-echo "Defaults timestamp_timeout=0" >> /mnt/etc/sudoers
+arch-chroot /mnt echo "Defaults timestamp_timeout=0" >> /etc/sudoers
 
 info_print "Adding Multilib repository to pacman config"
 if [[ $MULTILIB = "TRUE" || $MULTILIB = "True" || $MULTILIB = "true" ]]
 then
-    sed -i "/\[multilib\]/,/Include/"'s/^#//' /mnt/etc/pacman.conf
+    arch-chroot /mnt sed -i "/\[multilib\]/,/Include/"'s/^#//' /etc/pacman.conf
 fi
 
 info_print "Adding Blackarch repository to pacman config"
@@ -658,7 +650,7 @@ info_print "Installing Paru"
 arch-chroot clone https://aur.archlinux.org/paru.git /root/paru; cd /root/paru; su -c "makepkg -si" -s /bin/sh $username; cd /root/Nescafe-ArchInstall; rm -r /root/paru
 
 info_print "Enabling BottomUp setting in paru config"
-sed -i "s/^#BottomUp$/BottomUp/" /mnt/etc/paru.conf
+arch-chroot /mnt sed -i "s/^#BottomUp$/BottomUp/" /etc/paru.conf
 
 #arch-chroot /mnt virt_check
 arch chroot /mnt su $username -c "sudo refind-install"
@@ -674,30 +666,30 @@ $snd_ac97_codec=$(lspci -k | grep "snd_ac97_codec" | grep "in use")
 
 if ! [ -z $snd_hda_intel ]
 then
-    echo "options snd_hda_intel power_save=10" > /mnt/etc/modprobe.d/audio_powersave.conf
+    arch-chroot /mnt echo "options snd_hda_intel power_save=10" > /etc/modprobe.d/audio_powersave.conf
 fi
 
 if ! [ -z $snd_ac97_codec ]
 then
-    echo "options snd_ac97_codec power_save=10" > /mnt/etc/modprobe.d/audio_powersave.conf
+    arch-chroot /mnt echo "options snd_ac97_codec power_save=10" > /etc/modprobe.d/audio_powersave.conf
 fi
 
 # Since Linux 4.15 there is a new setting called med_power_with_dipm that matches the behaviour of Windows IRST driver settings and should not cause data loss with recent SSD/HDD drives. 
 
 info_print "Enable disk power saving mode. power saving can be significant, ranging from 1.0 to 1.5 Watts (when idle)."
-echo 'ACTION=="add", SUBSYSTEM=="scsi_host", KERNEL=="host*", ATTR{link_power_management_policy}="med_power_with_dipm"' > /mnt/etc/udev/rules.d/hd_power_save.rules
+arch-chroot /mnt echo 'ACTION=="add", SUBSYSTEM=="scsi_host", KERNEL=="host*", ATTR{link_power_management_policy}="med_power_with_dipm"' > /etc/udev/rules.d/hd_power_save.rules
 
 # Prevent snapshot slowdowns
 info_print "prevent snapshot slowdown by excluding /etc/updatedb.conf from COW"
-echo 'PRUNENAMES = ".snapshots"' >> /mnt/etc/updatedb.conf
+arch-chroot /mnt echo 'PRUNENAMES = ".snapshots"' >> /etc/updatedb.conf
 
 # Most important command! Get rid of the beep!
 info_print "Disable speaker beep sound when using autocomplete"
 arch-chroot /mnt rmmod pcspkr
-echo "blacklist pcspkr" > /mnt/etc/modprobe.d/nobeep.conf
+arch-chroot /mnt echo "blacklist pcspkr" > /etc/modprobe.d/nobeep.conf
 
 info_print "Setting up reflector config file"
-cat << EOF > /mnt/etc/xdg/reflector/reflector.conf
+arch-chroot /mnt cat << EOF > /mnt/etc/xdg/reflector/reflector.conf
 # Set the output path where the mirrorlist will be saved (--save).
 --save /etc/pacman.d/mirrorlist
 
