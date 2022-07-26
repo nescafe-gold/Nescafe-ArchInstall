@@ -18,6 +18,8 @@ RESET='\e[0m'
 KEYMAP="uk"
 LOCALE="en_GB.UTF-8"
 HOSTNAME="TEST-ARCH"
+TIMEZONE="Europe/London"
+NTP="TRUE"
 
 #### Disk Information
 # Disk to install btrfs on. This disk will be WIPED
@@ -432,7 +434,7 @@ BTRFS="/dev/mapper/${ENCRYPTED_BTRFS_VOLUMES_LABEL}"
 
 # Informing the Kernel of the changes.
 info_print "Informing the Kernel about the disk changes."
-partprobe "$DISK"
+partprobe "$DISK" &>/dev/null
 
 # Formatting the EFI as FAT32.
 info_print "Formatting the EFI Partition as FAT32." 
@@ -441,7 +443,7 @@ mkfs.vfat -F32 -n "$EFI_LABEL" $EFI &>/dev/null
 
 # Creating a LUKS Container for the root partition.
 info_print "Creating LUKS Container for the root partition."
-echo -n "$lukspass" | cryptsetup luksFormat $ENCRYPTION_OPTIONS $CRYPTSYSTEM -d - 
+echo -n "$lukspass" | cryptsetup luksFormat $ENCRYPTION_OPTIONS $CRYPTSYSTEM -d - &>/dev/null
 echo -n "$lukspass" | cryptsetup --allow-discards --perf-no_read_workqueue --perf-no_write_workqueue --persistent open $CRYPTSYSTEM $ENCRYPTED_BTRFS_VOLUMES_LABEL -d - 
 
 # Formatting the LUKS Container as BTRFS.
@@ -484,7 +486,7 @@ SSD_MOUNT_OPTIONS="$HDD_MOUNT_OPTIONS,space_cache=v2,ssd,commit=120,discard=asyn
 MOUNT_OPTIONS=$SSD_MOUNT_OPTIONS
 STRICT_MOUNT_OPTIONS="noexec,nodev,nosuid,$MOUNT_OPTIONS"
 
-mount -o $MOUNT_OPTIONS,subvol=@ $BTRFS /mnt
+mount -o $MOUNT_OPTIONS,subvol=@ $BTRFS /mnt 
 
 mkdir -p /mnt/{boot,home,var/cache,var/log,.snapshots,btrfs,var/tmp,var/abs,srv}
 
@@ -519,7 +521,6 @@ microcode_detector
 
 # Pacman eye-candy features.
 info_print "Enabling colours, animations, and parallel downloads for pacman."
-
 sed -i 's/#UseSyslog/UseSyslog/' /etc/pacman.conf && \
 sed -i 's/#Color/Color\\\nILoveCandy/' /etc/pacman.conf && \
 sed -i 's/Color\\/Color/' /etc/pacman.conf && \
@@ -541,9 +542,9 @@ if [[ $BLACKARCH = "TRUE" || $BLACKARCH = "True" || $BLACKARCH = "true" ]]
 then
     info_print "Adding Blackarch repository to pacman config"
     cd /tmp
-    curl -O https://blackarch.org/strap.sh
-    chmod +x strap.sh
-    ./strap.sh
+    curl -O https://blackarch.org/strap.sh &>/dev/null
+    chmod +x strap.sh 
+    ./strap.sh &>/dev/null
     rm ./strap.sh
     cd
 fi
@@ -560,37 +561,29 @@ reflector --verbose --country "$country" --age 12 --latest 10 --sort rate --prot
 pacman -Syy --noconfirm
 
 
+virt_check
+
+
 # Pacstrap (setting up a base system onto the new root).
 info_print "Installing the base system (it may take a while)."
-pacstrap /mnt base "$kernel" "$microcode" linux-firmware "$kernel"-headers btrfs-progs rsync snapper reflector snap-pac zram-generator git zsh gptfdisk archlinux-keyring booster zstd iwd networkmanager mesa vulkan-intel libva-mesa-driver openssh mesa-vdpau libvirt refind rustup zsh sshguard neovim nano rust-analyzer xdg-user-dirs zram-generator pigz pbzip2 snapper a52dec faac iptables-nft git faad2 flac jasper grim libmad libmpeg2 libtheora libvorbis compsize nftables wavpack xvidcore libde265 polkit-gnome mako slurp libxv noto-fonts btrfs-progs udiskie imv mpv lrzip unrar zip powertop x264 lzip apparmor lz4 wireplumber lzop p7zip noto-fonts-emoji ttf-font-awesome libva-utils man-db chrony dbus-broker lame blueman irqbalance pipewire{,-pulse,-jack,-alsa} --noconfirm 
+pacstrap /mnt base "$kernel" "$microcode" linux-firmware "$kernel"-headers btrfs-progs rsync snapper reflector snap-pac zram-generator git zsh gptfdisk booster zstd iwd networkmanager mesa vulkan-intel libva-mesa-driver openssh mesa-vdpau libvirt refind rustup zsh sshguard neovim nano rust-analyzer xdg-user-dirs zram-generator pigz pbzip2 snapper a52dec faac iptables-nft git faad2 flac jasper grim libmad libmpeg2 libtheora libvorbis compsize nftables wavpack xvidcore libde265 polkit-gnome mako slurp libxv noto-fonts btrfs-progs udiskie imv mpv lrzip unrar zip powertop x264 lzip apparmor lz4 wireplumber lzop p7zip noto-fonts-emoji ttf-font-awesome libva-utils man-db chrony dbus-broker lame blueman irqbalance pipewire{,-pulse,-jack,-alsa} --noconfirm 
 
-# Setting up the hostname.
-echo "$hostname" > /mnt/etc/hostname
+
+#archlinux-keyring
 
 # Generating /etc/fstab.
 info_print "Generating a new fstab."
 genfstab -L -p /mnt >> /mnt/etc/fstab
 
-
-# Configure selected locale and console keymap
-sed -i "/^#$locale/s/^#//" /mnt/etc/locale.gen
-echo "LANG=$locale" > /mnt/etc/locale.conf
-echo "$kblayout" > /mnt/etc/vconsole.conf
-
-# Setting up hosts file.
-info_print "Setting up hosts file at /etc/hosts"
-echo -e "\n127.0.0.1\tlocalhost\n::1\t\tlocalhost\n127.0.1.1\t${hostname}.localdomain\t$hostname" >> /etc/hosts
-
 # Virtualization check.
-virt_check
+info_print "Check if you are installing on a virtual machine. If you are then the you will get the option to choose which one. Then the necessary packages will will be installed later."
 
 # Setting up the network.
+info_print "Setup the network based upon the choice you made"
 network_installer
-
 
 # Configuring /etc/mkinitcpio.conf.
 info_print "Configuring /etc/mkinitcpio.conf."
-
 sed -i 's/^HOOKS.*/HOOKS=(base systemd udev autodetect keyboard keymap modconf block sd-encrypt resume filesystems fsck)/' /etc/mkinitcpio.conf
 sed -i 's/BINARIES=()/BINARIES=("\/usr\/bin\/btrfs")/' /etc/mkinitcpio.conf
 sed -i 's/MODULES=()/MODULES=(i915 btrfs)/' /etc/mkinitcpio.conf && \
@@ -606,48 +599,75 @@ sed -i 's/#COMPRESSION_OPTIONS=()/COMPRESSION_OPTIONS=(-9)/' /etc/mkinitcpio.con
 #UUID=$(blkid -s UUID -o value $CRYPTSYSTEM)
 #sed -i "\,^GRUB_CMDLINE_LINUX=\"\",s,\",&rd.luks.name=$UUID=$CRYPTSYSTEM root=$BTRFS," /mnt/etc/default/grub
 
-# Configuring the system.
-info_print "Configuring the system (timezone, system clock, initramfs, Snapper, GRUB)."
-arch-chroot /mnt /bin/bash -e <<EOF
-    # Setting up timezone.
-    ln -sf /usr/share/zoneinfo/Europe/London /etc/localtime 
-    # Setting up clock.
-    hwclock --systohc
-    # Generating locales.
-    locale-gen 
-    # Generating a new initramfs.
-    mkinitcpio -P linux 
-    # Snapper configuration.
-    #umount /.snapshots
-    #rm -r /.snapshots
-    #snapper --no-dbus -c root create-config /
-    #btrfs subvolume delete /.snapshots 
-    #mkdir /.snapshots
-    #mount -a 
-    #chmod 750 /.snapshots
-    # Installing GRUB.
-    #grub-install --target=x86_64-efi --efi-directory=/boot/ --bootloader-id=GRUB 
-    # Creating grub config file.
-    #grub-mkconfig -o /boot/grub/grub.cfg 
-EOF
+
+### Configure the system
+# Configure selected locale and console keymap
+info_print "Configure locales & keymap"
+sed -i "/^#$locale/s/^#//" /mnt/etc/locale.gen
+echo "LANG=$locale" > /mnt/etc/locale.conf
+echo "$kblayout" > /mnt/etc/vconsole.conf
+
+# Setting up timezones
+info_print "Setting up timezone"
+arch-chroot /mnt ln -sf /usr/share/zoneinfo/${TIMEZONE}
+
+if [ -z "$NTP" ]
+then
+    # Ask if you want to add multilib repositories
+    input_print "Do you want to add the enable NTP to sync your system time with the internet? [y/N]?: "
+    read -r ntp_boolean
+    if ! [[ "${ntp_boolean,,}" =~ ^(yes|y)$ ]]
+    then
+        arch-chroot /mnt timedatectl set-ntp true
+    fi
+else
+    ntp_boolean="${NTP}"  
+fi
+
+# Generate locales
+info_print "Generating locales"
+arch-chroot /mnt locale-gen
+
+# Setting up clock
+info_print "Setting up system clock"
+arch-chroot /mnt hwclock --systohc
+
+# Setting up the hostname.
+info_print "Configure Hostname"
+echo "$hostname" > /mnt/etc/hostname
+
+# Setting up hosts file.
+info_print "Setting up hosts file at /etc/hosts"
+echo -e "\n127.0.0.1\tlocalhost\n::1\t\tlocalhost\n127.0.1.1\t${hostname}.localdomain\t$hostname" >> /mnt/etc/hosts
+
+# Generating a new initramfs.
+info_print "Generating a new initramfs for $kernel"
+arch-chroot /mnt mkinitcpio -P $kernel 
 
 # Setting root password.
 info_print "Setting root password."
 echo "root:$rootpass" | arch-chroot /mnt chpasswd
 
 # Setting user password.
+info_print "Setting up user password"
 if [[ -n "$username" ]]; then
-    echo "%wheel ALL=(ALL:ALL) ALL" > /mnt/etc/sudoers.d/wheel
-    info_print "Adding the user $username to the system with root privilege."
+    info_print "Adding the user $username to the system"
     arch-chroot /mnt useradd -m -G power,input,audio,wheel,storage,rfkill,network,video,scanner,adbusers,wireshark -s /usr/bin/zsh "$username"
+    
     info_print "Setting user password for $username."
     echo "$username:$userpass" | arch-chroot /mnt chpasswd
+
+    info_print "make user $username not need password for sudo commands temporarily (only for this install)"
+    sed -i '/^# %wheel ALL=(ALL) NOPASSWD: ALL/s/^# //' /mnt/etc/sudoers
+
 fi
+
+info_print "Set timestamp_timeout default to 0 "
+echo "Defaults timestamp_timeout=0" >> /mnt/etc/sudoers
 
 
 info_print "Installing Paru"
 # Let users in wheel group run sudo commands without password for automated paru install
-sed -i '/^# %wheel ALL=(ALL) NOPASSWD: ALL/s/^# //' /mnt/etc/sudoers
 
 arch-chroot clone https://aur.archlinux.org/paru.git /root/paru
 arch-chroot /mnt cd /root/paru
@@ -655,46 +675,17 @@ arch-chroot /mnt su -c "makepkg -si" -s /bin/sh $username
 arch-chroot /mnt cd /root/Nescafe-ArchInstall
 arch-chroot /mnt rm -r /root/paru
 
+info_print "Enabling BottomUp setting in paru config"
 sed -i "s/^#BottomUp$/BottomUp/" /mnt/etc/paru.conf
 
-
-paru -S --noremovemake --nodiffmenu --batchinstall --editmenu -S linux-xanmod-tt linux-xanmod-tt-headers firefox-extension-https-everywhere entr dbus-broker wireplumber firefox-ublock-origin irqbalance compsize haveged profile-sync-daemon lzip sbsigntools lrzip powertop p7zip lzop lame unarj firefox-dark-reader firefox-decentraleyes libva-utils apparmor arj cpio lha xarchiver slurp grimudiskie libsecret jasper tlp faad2 hyperfine ripgrep sshguard kanshi chrony snapper pbzip2 pigz tokei bc refind refind-btrfs
-
-
-echo "Defaults timestamp_timeout=0" >> /mnt/etc/sudoers
-
-
-# Since Linux 4.15 there is a new setting called med_power_with_dipm that matches the behaviour of Windows IRST driver settings and should not cause data loss with recent SSD/HDD drives. The power saving can be significant, ranging from 1.0 to 1.5 Watts (when idle).
-
-echo 'ACTION=="add", SUBSYSTEM=="scsi_host", KERNEL=="host*", ATTR{link_power_management_policy}="med_power_with_dipm"' > /etc/udev/rules.d/hd_power_save.rules
-
-# Most important command! Get rid of the beep!
-arch-chroot /mnt rmmod pcspkr
-echo "blacklist pcspkr" > /mnt/etc/modprobe.d/nobeep.conf
-
-# Prevent snapshot slowdowns
-echo 'PRUNENAMES = ".snapshots"' >> /etc/updatedb.conf
-
-# Boot backup hook.
-info_print "Configuring /boot backup when pacman transactions are made."
-mkdir -p /mnt/etc/pacman.d/hooks
-cat > /mnt/etc/pacman.d/hooks/50-bootbackup.hook <<EOF
-[Trigger]
-Operation = Upgrade
-Operation = Install
-Operation = Remove
-Type = Path
-Target = usr/lib/modules/*/vmlinuz
-[Action]
-Depends = rsync
-Description = Backing up /boot...
-When = PostTransaction
-Exec = /usr/bin/rsync -a --delete /boot /.bootbackup
-EOF
+info_print "Instaling more packages"
+arch-chroot /mnt paru -S --noremovemake --nodiffmenu --batchinstall --editmenu --noconfirm -S linux-xanmod-tt linux-xanmod-tt-headers firefox-extension-https-everywhere entr dbus-broker wireplumber firefox-ublock-origin irqbalance compsize haveged profile-sync-daemon lzip sbsigntools lrzip powertop p7zip lzop lame unarj firefox-dark-reader firefox-decentraleyes libva-utils apparmor arj cpio lha xarchiver slurp grimudiskie libsecret jasper tlp faad2 hyperfine ripgrep sshguard kanshi chrony snapper pbzip2 pigz tokei bc refind refind-btrfs
 
 # Save power on laptop by making sound idle if it is inactive for a few seconds
+info_print "Save power on laptop by making sound id;e if it is inactive for 10 seconds"
 $snd_hda_intel=$(lspci -k | grep "snd_hda_intel" | grep "in use") 
 $snd_ac97_codec=$(lspci -k | grep "snd_ac97_codec" | grep "in use")
+
 if ! [ -z $snd_hda_intel ]
 then
     echo "options snd_hda_intel power_save=10" > /mnt/etc/modprobe.d/audio_powersave.conf
@@ -704,6 +695,32 @@ if ! [ -z $snd_ac97_codec ]
 then
     echo "options snd_ac97_codec power_save=10" > /mnt/etc/modprobe.d/audio_powersave.conf
 fi
+
+# Since Linux 4.15 there is a new setting called med_power_with_dipm that matches the behaviour of Windows IRST driver settings and should not cause data loss with recent SSD/HDD drives. The power saving can be significant, ranging from 1.0 to 1.5 Watts (when idle).
+
+echo 'ACTION=="add", SUBSYSTEM=="scsi_host", KERNEL=="host*", ATTR{link_power_management_policy}="med_power_with_dipm"' > /mnt/etc/udev/rules.d/hd_power_save.rules
+
+# Prevent snapshot slowdowns
+info_print "prevent snapshot slowdown by excluding /etc/updatedb.conf from COW"
+echo 'PRUNENAMES = ".snapshots"' >> /mnt/etc/updatedb.conf
+
+# Most important command! Get rid of the beep!
+arch-chroot /mnt rmmod pcspkr
+echo "blacklist pcspkr" > /mnt/etc/modprobe.d/nobeep.conf
+
+# Reflector hook
+cat << EOF > /mnt/etc/pacman.d/hooks/mirrorupgrade.hook
+[Trigger]
+Operation = Upgrade
+Type = Package
+Target = pacman-mirrorlist
+
+[Action]
+Description = Updating pacman-mirrorlist with reflector and removing pacnew...
+When = PostTransaction
+Depends = reflector
+Exec = /bin/sh -c 'systemctl start reflector.service'
+EOF
 
 # Update rEFInd EFI on update
 cat << EOF > /etc/pacman.d/hooks/refind.hook
@@ -734,7 +751,7 @@ When = PostTransaction
 Exec = /usr/bin/install -Dm644 /dev/null /var/cache/zsh/pacman
 EOF
 
-# Reflector hook
+#Reflector hook
 cat << EOF > /etc/pacman.d/hooks/mirrorupgrade.hook
 [Trigger]
 Operation = Upgrade
@@ -745,7 +762,7 @@ Target = pacman-mirrorlist
 Description = Updating pacman-mirrorlist with reflector and removing pacnew...
 When = PostTransaction
 Depends = reflector
-Exec = /bin/sh -c 'systemctl start reflector.service'
+Exec = /bin/sh -c 'systemctl start reflector.service; if [ -f /etc/pacman.d/mirrorlist.pacnew ]; then rm /etc/pacman.d/mirrorlist.pacnew; fi'
 EOF
 
 # Better IO Scheduler
@@ -758,8 +775,43 @@ ACTION=="add|change", KERNEL=="sd[a-z]|mmcblk[0-9]*", ATTR{queue/rotational}=="0
 ACTION=="add|change", KERNEL=="sd[a-z]", ATTR{queue/rotational}=="1", ATTR{queue/scheduler}="bfq"
 EOF
 
+
+
+    # Snapper configuration.
+    #umount /.snapshots
+    #rm -r /.snapshots
+    #snapper --no-dbus -c root create-config /
+    #btrfs subvolume delete /.snapshots 
+    #mkdir /.snapshots
+    #mount -a 
+    #chmod 750 /.snapshots
+    # Installing GRUB.
+    #grub-install --target=x86_64-efi --efi-directory=/boot/ --bootloader-id=GRUB 
+    # Creating grub config file.
+    #grub-mkconfig -o /boot/grub/grub.cfg 
+EOF
+
+
+
+# Boot backup hook.
+info_print "Configuring /boot backup when pacman transactions are made."
+mkdir -p /mnt/etc/pacman.d/hooks
+cat > /mnt/etc/pacman.d/hooks/50-bootbackup.hook <<EOF
+[Trigger]
+Operation = Upgrade
+Operation = Install
+Operation = Remove
+Type = Path
+Target = usr/lib/modules/*/vmlinuz
+[Action]
+Depends = rsync
+Description = Backing up /boot...
+When = PostTransaction
+Exec = /usr/bin/rsync -a --delete /boot /.bootbackup
+EOF
+
 # Create zram
-cat << EOF > /etc/systemd/zram-generator.conf
+cat << EOF > /mnt/etc/systemd/zram-generator.conf
 # This file is part of the zram-generator project
 # https://github.com/systemd/zram-generator
 
@@ -782,29 +834,33 @@ zram-size = ram / 4
 
 EOF
 
+
 # Optimize Makepkg
-sed -i 's/^CXXFLAGS.*/CXXFLAGS="-march=native -mtune=native -O2 -pipe -fstack-protector-strong --param=ssp-buffer-size=4 -fno-plt"/' /etc/makepkg.conf && \
-sed -i 's/^#RUSTFLAGS.*/RUSTFLAGS="-C opt-level=2 -C target-cpu=native"/' /etc/makepkg.conf && \
-sed -i 's/^#BUILDDIR.*/BUILDDIR=\/tmp\/makepkg/' /etc/makepkg.conf && \
-sed -i 's/^#MAKEFLAGS.*/MAKEFLAGS="-j$(getconf _NPROCESSORS_ONLN) --quiet"/' /etc/makepkg.conf && \
-sed -i 's/^COMPRESSGZ.*/COMPRESSGZ=(pigz -c -f -n)/' /etc/makepkg.conf && \
-sed -i 's/^COMPRESSBZ2.*/COMPRESSBZ2=(pbzip2 -c -f)/' /etc/makepkg.conf && \
-sed -i 's/^COMPRESSXZ.*/COMPRESSXZ=(xz -T "$(getconf _NPROCESSORS_ONLN)" -c -z --best -)/' /etc/makepkg.conf && \
-sed -i 's/^COMPRESSZST.*/COMPRESSZST=(zstd -c -z -q --ultra -T0 -22 -)/' /etc/makepkg.conf && \
-sed -i 's/^COMPRESSLZ.*/COMPRESSLZ=(lzip -c -f)/' /etc/makepkg.conf && \
-sed -i 's/^COMPRESSLRZ.*/COMPRESSLRZ=(lrzip -9 -q)/' /etc/makepkg.conf && \
-sed -i 's/^COMPRESSLZO.*/COMPRESSLZO=(lzop -q --best)/' /etc/makepkg.conf && \
-sed -i 's/^COMPRESSZ.*/COMPRESSZ=(compress -c -f)/' /etc/makepkg.conf && \
-sed -i 's/^COMPRESSLZ4.*/COMPRESSLZ4=(lz4 -q --best)/' /etc/makepkg.conf
+sed -i 's/^CXXFLAGS.*/CXXFLAGS="-march=native -mtune=native -O2 -pipe -fstack-protector-strong --param=ssp-buffer-size=4 -fno-plt"/' /mnt/etc/makepkg.conf 
+sed -i 's/^#RUSTFLAGS.*/RUSTFLAGS="-C opt-level=2 -C target-cpu=native"/' /mnt/etc/makepkg.conf
+sed -i 's/^#BUILDDIR.*/BUILDDIR=\/tmp\/makepkg/' /mnt/etc/makepkg.conf 
+sed -i 's/^#MAKEFLAGS.*/MAKEFLAGS="-j$(getconf _NPROCESSORS_ONLN) --quiet"/' /mnt/etc/makepkg.conf
+sed -i 's/^COMPRESSGZ.*/COMPRESSGZ=(pigz -c -f -n)/' /mnt/etc/makepkg.conf 
+sed -i 's/^COMPRESSBZ2.*/COMPRESSBZ2=(pbzip2 -c -f)/' /mnt/etc/makepkg.conf 
+sed -i 's/^COMPRESSXZ.*/COMPRESSXZ=(xz -T "$(getconf _NPROCESSORS_ONLN)" -c -z --best -)/' /mnt/etc/makepkg.conf 
+sed -i 's/^COMPRESSZST.*/COMPRESSZST=(zstd -c -z -q --ultra -T0 -22 -)/' /mnt/etc/makepkg.conf 
+sed -i 's/^COMPRESSLZ.*/COMPRESSLZ=(lzip -c -f)/' /mnt/etc/makepkg.conf 
+sed -i 's/^COMPRESSLRZ.*/COMPRESSLRZ=(lrzip -9 -q)/' /mnt/etc/makepkg.conf
+sed -i 's/^COMPRESSLZO.*/COMPRESSLZO=(lzop -q --best)/' /mnt/etc/makepkg.conf
+sed -i 's/^COMPRESSZ.*/COMPRESSZ=(compress -c -f)/' /mnt/etc/makepkg.conf
+sed -i 's/^COMPRESSLZ4.*/COMPRESSLZ4=(lz4 -q --best)/' /mnt/etc/makepkg.conf
+
 
 # Pacman
-sed -i 's/#UseSyslog/UseSyslog/' /etc/pacman.conf && \
-sed -i 's/#Color/Color\\\nILoveCandy/' /etc/pacman.conf && \
-sed -i 's/Color\\/Color/' /etc/pacman.conf && \
-sed -i 's/#CheckSpace/CheckSpace/' /etc/pacman.conf
+sed -i 's/#UseSyslog/UseSyslog/' /mnt/etc/pacman.conf 
+sed -i 's/#Color/Color\\\nILoveCandy/' /mnt/etc/pacman.conf 
+sed -i 's/Color\\/Color/' /mnt/etc/pacman.conf 
+sed -i 's/#CheckSpace/CheckSpace/' /mnt/etc/pacman.conf
+sed -i "s/^#ParallelDownloads = 5$/ParallelDownloads = 6/" /mnt/etc/pacman.conf
+
 
 # Chrony
-cat <<EOF > /etc/chrony.conf
+cat <<EOF > /mnt/etc/chrony.conf
 # Use public NTP servers from the pool.ntp.org project.
 server 0.pool.ntp.org offline
 server 1.pool.ntp.org offline
@@ -825,12 +881,12 @@ rtconutc
 EOF
 
 
-sed -i 's/^umask.*/umask\ 077/' /etc/profile && \
-chmod 700 /etc/{iptables,arptables,nftables.conf} && \
-echo "auth optional pam_faildelay.so delay=4000000" >> /etc/pam.d/system-login && \
-echo "tcp_bbr" > /etc/modules-load.d/bbr.conf && \
-echo "write-cache" > /etc/apparmor/parser.conf
-cat << EOF >/etc/sysctl.d/99-sysctl-performance-tweaks.conf
+sed -i 's/^umask.*/umask\ 077/' /mnt/etc/profile
+chmod 700 /mnt/etc/{iptables,arptables,nftables.conf} 
+echo "auth optional pam_faildelay.so delay=4000000" >> /mnt/etc/pam.d/system-login
+echo "tcp_bbr" > /mnt/etc/modules-load.d/bbr.conf 
+echo "write-cache" > /mnt/etc/apparmor/parser.conf
+cat << EOF >/mnt/etc/sysctl.d/99-sysctl-performance-tweaks.conf
 # The swappiness sysctl parameter represents the kernel's preference (or avoidance) of swap space. Swappiness can have a value between 0 and 100, the default value is 60. 
 # A low value causes the kernel to avoid swapping, a higher value causes the kernel to try to use swap space. Using a low value on sufficient memory is known to improve responsiveness on many systems.
 vm.swappiness=10
@@ -936,7 +992,7 @@ net.core.default_qdisc = fq_pie
 EOF
 
 # SSHGuard
-cat << EOF > /etc/sshguard.conf
+cat << EOF > /mnt/etc/sshguard.conf
 # Full path to backend executable (required, no default)
 BACKEND="/usr/lib/sshguard/sshg-fw-nft-sets"
 
@@ -960,7 +1016,7 @@ IPV4_SUBNET=24
 EOF
 
 #Automatic logout
-cat << EOF > /etc/profile.d/shell-timeout.sh
+cat << EOF > /mnt/etc/profile.d/shell-timeout.sh
 TMOUT="\$(( 60*30 ))";
 [ -z "\$DISPLAY" ] && export TMOUT;
 case \$( /usr/bin/tty ) in
@@ -968,11 +1024,12 @@ case \$( /usr/bin/tty ) in
 esac
 EOF
 
-refind-install
+arch-chroot /mnt refind-install
 
 rustup default stable 
-paru --noremovemake -S  memavaild prelockd nohang-git refind-btrfs just greetd greetd-gtkgreeter
-paru --noremovemake -S linux-xanmod-tt linux-xanmod-tt-headers
+
+paru --noremovemake --noconfirm -S memavaild prelockd nohang-git refind-btrfs just greetd greetd-gtkgreeter
+paru --noremovemake --noconfirm -S linux-xanmod-tt linux-xanmod-tt-headers
 
 
 # Add auto-cpu-freq
@@ -983,26 +1040,27 @@ cd
 
 
 #Add rEFInd theme
-mkdir -p /boot/EFI/refind/themes  
-git clone https://github.com/dheishman/refind-dreary.git /boot/EFI/refind/themes/refind-dreary-git 
-mv /boot/EFI/refind/themes/refind-dreary-git/highres /boot/EFI/refind/themes/refind-dreary 
-rm -dR /boot/EFI/refind/themes/refind-dreary-git
+mkdir -p /mnt/boot/EFI/refind/themes  
+git clone https://github.com/dheishman/refind-dreary.git /mnt/boot/EFI/refind/themes/refind-dreary-git 
+mv /mnt/boot/EFI/refind/themes/refind-dreary-git/highres /mnt/boot/EFI/refind/themes/refind-dreary 
+rm -dR /mnt/boot/EFI/refind/themes/refind-dreary-git
+
 
 #Configure rEFInd
-sed -i 's/#resolution 3/resolution 1920 1080/' /boot/EFI/refind/refind.conf 
-sed -i 's/#use_graphics_for osx,linux/use_graphics_for linux/' /boot/EFI/refind/refind.conf 
-sed -i 's/#scanfor internal,external,optical,manual/scanfor manual,external/' /boot/EFI/refind/refind.conf
-sed -i 's/hideui.*/hideui singleuser,hints,arrows,badges/' /boot/EFI/refind/themes/refind-dreary/theme.conf
+sed -i 's/#resolution 3/resolution 1920 1080/' /mnt/boot/EFI/refind/refind.conf 
+sed -i 's/#use_graphics_for osx,linux/use_graphics_for linux/' /mnt/boot/EFI/refind/refind.conf 
+sed -i 's/#scanfor internal,external,optical,manual/scanfor manual,external/' /mnt/boot/EFI/refind/refind.conf
+sed -i 's/hideui.*/hideui singleuser,hints,arrows,badges/' /mnt/boot/EFI/refind/themes/refind-dreary/theme.conf
 
 #Add rEFInd Manual Stanza (make sure ROOT_PARITION is set)
-cat << EOF >> /boot/EFI/refind/refind.conf
+cat << EOF >> /mnt/boot/EFI/refind/refind.conf
 
 menuentry "Arch Linux" {
     icon     /EFI/refind/themes/refind-dreary/icons/os_arch.png
     volume   "Arch Linux"
     loader   /vmlinuz-linux-lts
     initrd   /booster-linux-lts.img
-    options  "rd.luks.name=$(blkid /dev/nvme0n1p2 | cut -d " " -f2 | cut -d '=' -f2 | sed 's/\"//g')=$(echo "$ENCRYPTED_BTRFS_VOLUMES_LABEL") root=$(echo "$CRYPTROOT") rootflags=subvol=@ rw quiet nmi_watchdog=0 kernel.unprivileged_userns_clone=0 net.core.bpf_jit_harden=2 apparmor=1 lsm=lockdown,yama,apparmor systemd.unified_cgroup_hierarchy=1 add_efi_memmap initrd=\intel-ucode.img"
+    options  "rd.luks.name=$(blkid $CRYPTSYSTEM | cut -d " " -f2 | cut -d '=' -f2 | sed 's/\"//g')=$(echo "$ENCRYPTED_BTRFS_VOLUMES_LABEL") root=$(echo "$BTRFS") rootflags=subvol=@ rw quiet nmi_watchdog=0 kernel.unprivileged_userns_clone=0 net.core.bpf_jit_harden=2 apparmor=1 lsm=lockdown,yama,apparmor systemd.unified_cgroup_hierarchy=1 add_efi_memmap initrd=\intel-ucode.img"
     submenuentry "Boot - terminal" {
         add_options "systemd.unit=multi-user.target"
     }
@@ -1013,7 +1071,7 @@ menuentry "Arch Linux - Low Latency" {
     volume   "Arch Linux"
     loader   /vmlinuz-linux-xanmod-tt
     initrd   /booster-linux-xanmod-tt.img
-    options  "rd.luks.name=$(blkid /dev/nvme0n1p2 | cut -d " " -f2 | cut -d '=' -f2 | sed 's/\"//g')=$(echo "$ENCRYPTED_BTRFS_VOLUMES_LABEL") root=$(echo "$CRYPTROOT") rootflags=subvol=@ rw quiet nmi_watchdog=0 kernel.unprivileged_userns_clone=0 net.core.bpf_jit_harden=2 apparmor=1 lsm=lockdown,yama,apparmor systemd.unified_cgroup_hierarchy=1 add_efi_memmap initrd=\intel-ucode.img"
+    options  "rd.luks.name=$(blkid $CRYPTSYSTEM | cut -d " " -f2 | cut -d '=' -f2 | sed 's/\"//g')=$(echo "$ENCRYPTED_BTRFS_VOLUMES_LABEL") root=$(echo "$BTRFS") rootflags=subvol=@ rw quiet nmi_watchdog=0 kernel.unprivileged_userns_clone=0 net.core.bpf_jit_harden=2 apparmor=1 lsm=lockdown,yama,apparmor systemd.unified_cgroup_hierarchy=1 add_efi_memmap initrd=\intel-ucode.img"
     submenuentry "Boot - terminal" {
         add_options "systemd.unit=multi-user.target"
     }
@@ -1023,10 +1081,10 @@ include themes/refind-dreary/theme.conf
 EOF
 
 # Edit refind-btrfs
-sed -i 's/^selection_count.*/count = "inf"/' /etc/refind-btrfs.conf
-sed -i 's/^include_sub_menus.*/include_sub_menus = true/' /etc/refind-btrfs.conf
+sed -i 's/^selection_count.*/count = "inf"/' /mnt/etc/refind-btrfs.conf
+sed -i 's/^include_sub_menus.*/include_sub_menus = true/' /mnt/etc/refind-btrfs.conf
 
-
+cat << EOF >> /home/$username/init.sh
 sudo umount /.snapshots
 sudo rm -r /.snapshots
 sudo snapper -c root create-config /
@@ -1034,6 +1092,8 @@ sudo mount -a
 sudo chmod 750 -R /.snapshots
 sudo chmod a+rx /.snapshots
 sudo chown :wheel /.snapshots
+
+
 sudo snapper -c root create --description "Fresh Install"
 sudo sed -i 's/^TIMELINE_MIN_AGE.*/TIMELINE_MIN_AGE="1800"/' /etc/snapper/configs/root && \
 sudo sed -i 's/^TIMELINE_LIMIT_HOURLY.*/TIMELINE_LIMIT_HOURLY="0"/' /etc/snapper/configs/root && \
@@ -1041,22 +1101,22 @@ sudo sed -i 's/^TIMELINE_LIMIT_DAILY.*/TIMELINE_LIMIT_DAILY="7"/' /etc/snapper/c
 sudo sed -i 's/^TIMELINE_LIMIT_WEEKLY.*/TIMELINE_LIMIT_WEEKLY="0"/' /etc/snapper/configs/root && \
 sudo sed -i 's/^TIMELINE_LIMIT_MONTHLY.*/TIMELINE_LIMIT_MONTHLY="0"/' /etc/snapper/configs/root && \
 sudo sed -i 's/^TIMELINE_LIMIT_YEARLY.*/TIMELINE_LIMIT_YEARLY="0"/' /etc/snapper/configs/root
+
+
 sudo systemctl enable --now snapper-timeline.timer snapper-cleanup.timer
-sudo systemctl disable --now systemd-timesyncd.service
-sudo systemctl mask systemd-rfkill.socket systemd-rfkill.service
+sudo systemctl disable NetworkManager-wait-online
+sudo systemctl mask NetworkManager-wait-online
 sudo systemctl enable --now NetworkManager 
-sudo systemctl enable --now NetworkManager-wait-online
 sudo systemctl enable --now NetworkManager-dispatcher
 sudo systemctl enable --now nftables
-sudo systemctl enable --now opennic-up.timer
 sudo systemctl enable --now sshd 
+# uncomment if chronyd NOT is installed
+#sudo systemctl disable --now systemd-timesyncd.service
 sudo systemctl enable --now chronyd
 sudo systemctl enable --now reflector
-sudo systemctl enable --now apparmor 
+sudo systemctl enable --now apparmor
 sudo systemctl enable --now sshguard
-sudo systemctl enable --now tlp 
 sudo systemctl enable --now memavaild 
-sudo systemctl enable --now haveged 
 sudo systemctl enable --now irqbalance 
 sudo systemctl enable --now prelockd 
 sudo systemctl enable --now systemd-swap 
@@ -1064,15 +1124,12 @@ sudo systemctl enable --now nohang-desktop
 sudo systemctl enable --now auto-cpufreq 
 sudo systemctl enable --now dbus-broker
 sudo systemctl enable --now refind-btrfs
-systemctl --user start psd
+sudo systemctl enable --now greetd
+rm /home/$username/init.sh
+EOF
+arch-chroot /mnt chown $username /home/$username/init.sh
+arch-chroot /mnt su $username -s /home/$username/init.sh
 
-
-# Enabling various services.
-info_print "Enabling Reflector, automatic snapshots, BTRFS scrubbing and systemd-oomd."
-services=(reflector.timer snapper-timeline.timer snapper-cleanup.timer btrfs-scrub@-.timer btrfs-scrub@home.timer btrfs-scrub@var-log.timer btrfs-scrub@\\x2esnapshots.timer grub-btrfs.path systemd-oomd)
-for service in "${services[@]}"; do
-    systemctl enable "$service" --root=/mnt
-done
 
 # Finishing up.
 info_print "Done, you may now wish to reboot (further changes can be done by chrooting into /mnt)."
