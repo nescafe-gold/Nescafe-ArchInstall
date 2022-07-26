@@ -475,10 +475,14 @@ STRICT_MOUNT_OPTIONS="noexec,nodev,nosuid,$MOUNT_OPTIONS"
 # Mount /mnt directory with SSD options
 mount -o $MOUNT_OPTIONS,subvol=@ $BTRFS /mnt
 
+tmphomedir="/mnt/home/${username}"
+
 mkdir -p /mnt/{boot,home}
+mkdir -p $tmphomedir
 mkdir -p /mnt/var/{cache,log,tmp,abs}
 mkdir -p /mnt/srv
 mkdir -p /mnt/.snapshots
+
 
 mount -o $MOUNT_OPTIONS,subvol=@home $BTRFS /mnt/home 
 mount -o $MOUNT_OPTIONS,subvol=@srv $BTRFS /mnt/srv
@@ -491,23 +495,24 @@ done
 mount -o ${COMMON_MOUNT_OPTS},subvol=@snapshots $BTRFS /mnt/.snapshots
 
 # Optional subvolumes
-mkdir -p "/mnt/home/${username}/ProjectsNStuff"
-mkdir -p "/mnt/home/${username}/Documents"
+mkdir -p "$tmphomedir/ProjectsNStuff"
+mkdir -p "$tmphomedir/Documents"
 
+mounthomedir="home/${username}"
 
 #optionl mount points for extra subvolumes created earlier
-mount -$BTRFS -o $MOUNT_OPTIONS,subvol=home/${username}/@ProjectsNStuff /mnt/home/${username}/ProjectsNStuff 
-mount $BTRFS -o $MOUNT_OPTIONS,subvol=home/${username}/@Documents $BTRFS /mnt/home/${username}/Documents 
+mount -$BTRFS -o $MOUNT_OPTIONS,subvol=$mounthomedir/@ProjectsNStuff /mnt/home/${username}/ProjectsNStuff 
+mount $BTRFS -o $MOUNT_OPTIONS,subvol=$mounthomedir/@Documents $BTRFS /mnt/home/${username}/Documents 
 
 
 # Recommended to Disable COW for VM's or databases. Disabling /var/log
-chattr +C /mnt/var/log
+#chattr +C /mnt/var/log
+
 mount -o nodev,nosuid,noexec $EFI /mnt/boot
 
 # Checking the microcode to install.
 info_print "Detecting whether you have Intel or AMD CPU to install the necessary packages later"
 microcode_detector
-
 
 # Pacman eye-candy features.
 info_print "Enabling colours, animations, and parallel downloads for pacman."
