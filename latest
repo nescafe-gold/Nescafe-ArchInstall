@@ -467,7 +467,10 @@ COMMON_MOUNT_OPTS="ssd,noatime,compress-force=zstd,commit=120,space_cache=v2,dis
 
 
 mount -o ${COMMON_MOUNT_OPTS},subvol=@ $BTRFS /mnt
-mkdir -p /mnt/{boot,home,var/cache,var/log,.snapshots,var/tmp,srv}
+mkdir -p /mnt/{boot,home}
+mkdir -p var/{cache,log,tmp}
+mkdir .snapshots
+mkdir srv
 
 
 mount -o ${COMMON_MOUNT_OPTS},subvol=@home $BTRFS /mnt/home 
