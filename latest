@@ -480,8 +480,8 @@ STRICT_MOUNT_OPTIONS="noexec,nodev,nosuid,$MOUNT_OPTIONS"
 mount -o $MOUNT_OPTIONS,subvol=@ $BTRFS /mnt
 mkdir -p /mnt/{boot,home}
 mkdir -p var/{cache,log,tmp,abs}
+mkdir /mnt/srv
 mkdir .snapshots
-mkdir srv
 
 
 mount -o $MOUNT_OPTIONS,subvol=@home $BTRFS /mnt/home 
