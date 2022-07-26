@@ -521,33 +521,14 @@ microcode_detector
 
 # Pacman eye-candy features.
 info_print "Enabling colours, animations, and parallel downloads for pacman."
-sed -i 's/#UseSyslog/UseSyslog/' /etc/pacman.conf && \
-sed -i 's/#Color/Color\\\nILoveCandy/' /etc/pacman.conf && \
-sed -i 's/Color\\/Color/' /etc/pacman.conf && \
-sed -i 's/#TotalDownload/TotalDownload/' /etc/pacman.conf && \
-sed -i 's/#CheckSpace/CheckSpace/' /etc/pacman.conf
+sed -i 's/#UseSyslog/UseSyslog/' /mnt/etc/pacman.conf 
+sed -i 's/#Color/Color\\\nILoveCandy/' /mnt/etc/pacman.conf 
+sed -i 's/Color\\/Color/' /mnt/etc/pacman.conf 
+sed -i 's/#TotalDownload/TotalDownload/' /mnt/etc/pacman.conf && \
+sed -i 's/#CheckSpace/CheckSpace/' /mnt/etc/pacman.conf
 
 #add paralell downloads line
 
-if [[ $MULTILIB = "TRUE" || $MULTILIB = "True" || $MULTILIB = "true" ]]
-then
-    info_print "Adding Multilib repository to pacman config"
-    #Add multilib repo
-    info_print "Adding multilib repository for pacman."
-    sed -i "/\[multilib\]/,/Include/"'s/^#//' /etc/pacman.conf
-fi
-
-
-if [[ $BLACKARCH = "TRUE" || $BLACKARCH = "True" || $BLACKARCH = "true" ]]
-then
-    info_print "Adding Blackarch repository to pacman config"
-    cd /tmp
-    curl -O https://blackarch.org/strap.sh &>/dev/null
-    chmod +x strap.sh 
-    ./strap.sh &>/dev/null
-    rm ./strap.sh
-    cd
-fi
 
 # Use all cores for compilation.
 info_print "Configure makepkg.conf to compile packages with all CPU cores"
@@ -666,14 +647,23 @@ info_print "Set timestamp_timeout default to 0 "
 echo "Defaults timestamp_timeout=0" >> /mnt/etc/sudoers
 
 
+info_print "Adding Multilib repository to pacman config"
+if [[ $MULTILIB = "TRUE" || $MULTILIB = "True" || $MULTILIB = "true" ]]
+then
+    sed -i "/\[multilib\]/,/Include/"'s/^#//' /mnt/etc/pacman.conf
+fi
+
+
+info_print "Adding Blackarch repository to pacman config"
+if [[ $BLACKARCH = "TRUE" || $BLACKARCH = "True" || $BLACKARCH = "true" ]]
+then
+    arch-chroot cd /tmp; curl -O https://blackarch.org/strap.sh; chmod +x strap.sh; ./strap.sh; rm ./strap.sh; cd  
+fi
+
 info_print "Installing Paru"
 # Let users in wheel group run sudo commands without password for automated paru install
 
-arch-chroot clone https://aur.archlinux.org/paru.git /root/paru
-arch-chroot /mnt cd /root/paru
-arch-chroot /mnt su -c "makepkg -si" -s /bin/sh $username
-arch-chroot /mnt cd /root/Nescafe-ArchInstall
-arch-chroot /mnt rm -r /root/paru
+arch-chroot clone https://aur.archlinux.org/paru.git /root/paru; cd /root/paru; su -c "makepkg -si" -s /bin/sh $username; cd /root/Nescafe-ArchInstall; rm -r /root/paru
 
 info_print "Enabling BottomUp setting in paru config"
 sed -i "s/^#BottomUp$/BottomUp/" /mnt/etc/paru.conf
