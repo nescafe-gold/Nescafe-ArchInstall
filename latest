@@ -130,24 +130,14 @@ lukspass_selector () {
         lukspass="${ENCRYPTION_PASSWORD}"
     fi
 }
-
-# Setting up a password for the user account (function).
-username_selector () {
-    if [ -z "$USER_NAME" ]
+userpass_selector() {
+    if [-z "$USER_NAME" ]
     then
-        input_print "Please enter name for a user account: "
+        input_print "Please enter name for a user account (enter empty to not create one): "
         read -r username
         if [[ -z "$username" ]]; then
             return 0
         fi
-    else
-        username="${USER_NAME}"
-    fi
-}
-
-userpass_selector() {
-    if [ -z $USER_PASSWORD ]
-    then
         input_print "Please enter a password for $username (you're not going to see the password): "
         read -r -s userpass
         if [[ -z "$userpass" ]]; then
@@ -159,18 +149,17 @@ userpass_selector() {
         input_print "Please enter the password again (you're not going to see it): " 
         read -r -s userpass2
         echo
-        if [[ "$userpass" != "$userpass2" ]]
-        then
+        if [[ "$userpass" != "$userpass2" ]]; then
             echo
             error_print "Passwords don't match, please try again."
             return 1
         fi
         return 0
-    else 
-        $userpass="${USER_PASSWORD}"
+    else
+        username="${USER_NAME}"
     fi
-    return 0
 }
+
 
 # Setting up a password for the root account (function).
 rootpass_selector () {
@@ -326,9 +315,6 @@ until locale_selector; do : ; done
 
 # If HOSTNAME is empty, then select hostname
 until hostname_selector; do : ; done
-
-# Prompt to create username if USER_NAME variable is empty. Also give option to skip creating a username
-until username_selector; do : ; done
 
 # If user chose to create a username and if the USER_PASSWORD variable is empty then prompt for a password
 until userpass_selector; do : ; done
