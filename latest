@@ -130,8 +130,9 @@ lukspass_selector () {
         lukspass="${ENCRYPTION_PASSWORD}"
     fi
 }
+
 userpass_selector() {
-    if [-z "$USER_NAME" ]
+    if [ -z "$USER_NAME" ]
     then
         input_print "Please enter name for a user account (enter empty to not create one): "
         read -r username
