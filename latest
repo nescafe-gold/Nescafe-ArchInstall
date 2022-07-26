@@ -456,10 +456,6 @@ for subvol in '' "${subvols[@]}"; do
     btrfs su cr /mnt/@"$subvol" 
 done
 
-# Extra subvolumes (not necessary)
-btrfs sub create /mnt/home/${username}/@ProjectsNStuff 
-btrfs sub create /mnt/home/${username}/@Documents 
-
 umount /mnt
 
 # Mounting the newly created subvolumes.
@@ -498,11 +494,11 @@ mount -o ${COMMON_MOUNT_OPTS},subvol=@snapshots $BTRFS /mnt/.snapshots
 #mkdir -p "$tmphomedir/ProjectsNStuff"
 #mkdir -p "$tmphomedir/Documents"
 
-#mounthomedir="home/${username}"
+mounthomedir="home/${username}"
 
 #optionl mount points for extra subvolumes created earlier
-#mount -$BTRFS -o $MOUNT_OPTIONS,subvol=$mounthomedir/@ProjectsNStuff /mnt/home/${username}/ProjectsNStuff 
-#mount $BTRFS -o $MOUNT_OPTIONS,subvol=$mounthomedir/@Documents $BTRFS /mnt/home/${username}/Documents 
+mount -$BTRFS -o $MOUNT_OPTIONS,subvol=$mounthomedir/@ProjectsNStuff /mnt/home/${username}/ProjectsNStuff 
+mount $BTRFS -o $MOUNT_OPTIONS,subvol=$mounthomedir/@Documents $BTRFS /mnt/home/${username}/Documents 
 
 
 # Recommended to Disable COW for VM's or databases. Disabling /var/log
