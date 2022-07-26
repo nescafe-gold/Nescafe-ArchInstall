@@ -59,24 +59,24 @@ error_print () {
 virt_check () {
     hypervisor=$(systemd-detect-virt)
     case $hypervisor in
-           kvm )   info_print "KVM has been detected, setting up guest tools."
-                pacstrap /mnt qemu-guest-agent 
-                systemctl enable qemu-guest-agent --root=/mnt 
-                ;;
-        vmware  )   info_print "VMWare Workstation/ESXi has been detected, setting up guest tools."
+        kvm )       info_print "KVM has been detected, setting up guest tools."
+                    pacstrap /mnt qemu-guest-agent 
+                    systemctl enable qemu-guest-agent --root=/mnt &>/dev/null 
+                    ;;
+        vmware )    info_print "VMWare Workstation/ESXi has been detected, setting up guest tools."
                     pacstrap /mnt open-vm-tools
                     systemctl enable vmtoolsd --root=/mnt 
-                    systemctl enable vmware-vmblock-fuse --root=/mnt 
+                    systemctl enable vmware-vmblock-fuse --root=/mnt &>/dev/null 
                     ;;
         oracle )    info_print "VirtualBox has been detected, setting up guest tools."
                     pacstrap /mnt virtualbox-guest-utils 
-                    systemctl enable vboxservice --root=/mnt 
+                    systemctl enable vboxservice --root=/mnt &>/dev/null
                     ;;
         microsoft ) info_print "Hyper-V has been detected, setting up guest tools."
                     pacstrap /mnt hyperv 
                     systemctl enable hv_fcopy_daemon --root=/mnt 
                     systemctl enable hv_kvp_daemon --root=/mnt 
-                    systemctl enable hv_vss_daemon --root=/mnt
+                    systemctl enable hv_vss_daemon --root=/mnt &>/dev/null
                     ;;
     esac
 }
@@ -126,20 +126,20 @@ network_installer () {
     case $network_choice in
         1 ) info_print "Installing and enabling IWD."
             pacstrap /mnt iwd 
-            systemctl enable iwd --root=/mnt 
+            systemctl enable iwd --root=/mnt &>/dev/null
             ;;
         2 ) info_print "Installing and enabling NetworkManager."
             pacstrap /mnt networkmanager 
-            systemctl enable NetworkManager --root=/mnt 
+            systemctl enable NetworkManager --root=/mnt &>/dev/null
             ;;
         3 ) info_print "Installing and enabling wpa_supplicant and dhcpcd."
             pacstrap /mnt wpa_supplicant dhcpcd 
             systemctl enable wpa_supplicant --root=/mnt 
-            systemctl enable dhcpcd --root=/mnt
+            systemctl enable dhcpcd --root=/mnt &>/dev/null
             ;;
         4 ) info_print "Installing dhcpcd."
             pacstrap /mnt dhcpcd 
-            systemctl enable dhcpcd --root=/mnt
+            systemctl enable dhcpcd --root=/mnt &>/dev/null
     esac
 }
 
@@ -411,19 +411,19 @@ fi
 
 #################### Actual Install ###############
 info_print "Wiping $DISK."
-wipefs -af "$DISK" 
+wipefs -af "$DISK" &>/dev/null 
 # Zap drive and clear the gpt partition & create a new one
-sgdisk -Zo "$DISK" 
+sgdisk -Zo "$DISK" &>/dev/null
 
 # Creating a new partition scheme.
 info_print "Creating the partitions on $DISK."
 
-sgdisk --new=1:0:+512MiB --typecode=1:ef00 --align-end --change-name=1:"${EFI_LABEL}" $DISK
-sgdisk --new=2:0 --typecode=2:8300 --align-end --change-name=2:"${ENCRYPTED_BTRFS_VOLUMES_LABEL}" $DISK 
+sgdisk --new=1:0:+512MiB --typecode=1:ef00 --align-end --change-name=1:"${EFI_LABEL}" $DISK &>/dev/null
+sgdisk --new=2:0 --typecode=2:8300 --align-end --change-name=2:"${ENCRYPTED_BTRFS_VOLUMES_LABEL}" $DISK &>/dev/null 
 
 sgdisk -p $DISK 
 info_print "Parition Summary:"
-sgdisk -v $DISK 
+sgdisk -v $DISK &>/dev/null 
 
 
 EFI="/dev/disk/by-partlabel/${EFI_LABEL}"
@@ -434,42 +434,39 @@ BTRFS="/dev/mapper/${ENCRYPTED_BTRFS_VOLUMES_LABEL}"
 info_print "Informing the Kernel about the disk changes."
 partprobe "$DISK"
 
+# Formatting the EFI as FAT32.
+info_print "Formatting the EFI Partition as FAT32." 
+#mkfs.fat -F32 -n EFI /dev/disk/by-partlabel/EFI
+mkfs.vfat -F32 -n "$EFI_LABEL" $EFI &>/dev/null 
+
 # Creating a LUKS Container for the root partition.
 info_print "Creating LUKS Container for the root partition."
 echo -n "$lukspass" | cryptsetup luksFormat $ENCRYPTION_OPTIONS $CRYPTSYSTEM -d - 
 echo -n "$lukspass" | cryptsetup --allow-discards --perf-no_read_workqueue --perf-no_write_workqueue --persistent open $CRYPTSYSTEM $ENCRYPTED_BTRFS_VOLUMES_LABEL -d - 
 
-# Formatting the EFI as FAT32.
-info_print "Formatting the EFI Partition as FAT32." 
-#mkfs.fat -F32 -n EFI /dev/disk/by-partlabel/EFI
-mkfs.vfat -F32 -n "$EFI_LABEL" $EFI 
-
-
 # Formatting the LUKS Container as BTRFS.
 info_print "Formatting the LUKS container as BTRFS."
-mkfs.btrfs -L "$ENCRYPTED_BTRFS_VOLUMES_LABEL" -f $BTRFS 
+mkfs.btrfs -L "$ENCRYPTED_BTRFS_VOLUMES_LABEL" -f $BTRFS &>/dev/null
 
 # Mounting $BTRFS to /mnt
 info_print "Mounting $BTRFS to /mnt"
 mount $BTRFS /mnt
 
 info_print "Creating system BTRFS subvolumes"
-mkdir /mnt/arch
-
-btrfs sub create /mnt/arch/@
-btrfs sub create /mnt/arch/@home
-btrfs sub create /mnt/arch/@abs
-btrfs sub create /mnt/arch/@tmp
-btrfs sub create /mnt/arch/@srv
-btrfs sub create /mnt/arch/@snapshots
-btrfs sub create /mnt/@btrfs     
-btrfs sub create /mnt/arch/@log
-btrfs sub create /mnt/arch/@cache
+btrfs sub create /mnt/@
+btrfs sub create /mnt/@home
+btrfs sub create /mnt/@abs
+btrfs sub create /mnt/@tmp
+btrfs sub create /mnt/@srv
+btrfs sub create /mnt/@snapshots
+btrfs sub create /mnt/btrfs     
+btrfs sub create /mnt/@log
+btrfs sub create /mnt/@cache
 
 info_print "Creating extra subvolumes"
 # Extra subvolumes (not necessary)
 mkdir -p /mnt/home/$username/{Documents,ProjectsNStuff}
-mkdir /mnt/common
+
 btrfs sub create /mnt/home/$username/@Documents
 btrfs sub create /mnt/home/$username/@ProjectsNStuff
 
@@ -487,19 +484,19 @@ SSD_MOUNT_OPTIONS="$HDD_MOUNT_OPTIONS,space_cache=v2,ssd,commit=120,discard=asyn
 MOUNT_OPTIONS=$SSD_MOUNT_OPTIONS
 STRICT_MOUNT_OPTIONS="noexec,nodev,nosuid,$MOUNT_OPTIONS"
 
-mount -o $MOUNT_OPTIONS,subvol=arch/@ $BTRFS /mnt
+mount -o $MOUNT_OPTIONS,subvol=@ $BTRFS /mnt
 
 mkdir -p /mnt/{boot,home,var/cache,var/log,.snapshots,btrfs,var/tmp,var/abs,srv}
 
-mount -o $MOUNT_OPTIONS,subvol=arch/@home $BTRFS /mnt/home
-mount -o $MOUNT_OPTIONS,subvol=arch/@srv $BTRFS /mnt/srv
+mount -o $MOUNT_OPTIONS,subvol=@home $BTRFS /mnt/home
+mount -o $MOUNT_OPTIONS,subvol=@srv $BTRFS /mnt/srv
 
 strict_mount_targets="cache log abs tmp"
 for target in $(echo $strict_mount_targets)
-    do mount $BTRFS -o $STRICT_MOUNT_OPTIONS,subvol=arch/@$target /mnt/var/$target
+    do mount $BTRFS -o $STRICT_MOUNT_OPTIONS,subvol=@$target /mnt/var/$target
 done
 
-mount -o $MOUNT_OPTIONS,subvol=arch/@snapshots $BTRFS /mnt/.snapshots
+mount -o $MOUNT_OPTIONS,subvol=@snapshots $BTRFS /mnt/.snapshots
 mount -o $MOUNT_OPTIONS,subvolid=5 $BTRFS /mnt/btrfs
 
 
@@ -565,7 +562,7 @@ pacman -Syy --noconfirm
 
 # Pacstrap (setting up a base system onto the new root).
 info_print "Installing the base system (it may take a while)."
-pacstrap /mnt base "$kernel" "$microcode" linux-firmware "$kernel"-headers btrfs-progs rsync efibootmgr snapper reflector snap-pac zram-generator git zsh gptfdisk archlinux-keyring booster zstd iwd networkmanager mesa vulkan-intel libva-mesa-driver openssh mesa-vdpau libvirt qemu refind rustup wl-clipboard zsh sshguard neovim nano rust-analyzer xdg-user-dirs zram-generator pigz pbzip2 snapper a52dec faac iptables-nft git faad2 flac jasper grim libmad libmpeg2 libtheora libvorbis compsize nftables reflector wavpack xvidcore libde265 polkit-gnome mako slurp libxv noto-fonts btrfs-progs udiskie imv mpv lrzip unrar zip powertop x264 lzip apparmor lz4 wireplumber lzop p7zip noto-fonts-emoji ttf-font-awesome libva-utils man chrony dbus-broker lame blueman irqbalance pipewire{,-pulse,-jack,-alsa}
+pacstrap /mnt base "$kernel" "$microcode" linux-firmware "$kernel"-headers btrfs-progs rsync snapper reflector snap-pac zram-generator git zsh gptfdisk archlinux-keyring booster zstd iwd networkmanager mesa vulkan-intel libva-mesa-driver openssh mesa-vdpau libvirt refind rustup zsh sshguard neovim nano rust-analyzer xdg-user-dirs zram-generator pigz pbzip2 snapper a52dec faac iptables-nft git faad2 flac jasper grim libmad libmpeg2 libtheora libvorbis compsize nftables wavpack xvidcore libde265 polkit-gnome mako slurp libxv noto-fonts btrfs-progs udiskie imv mpv lrzip unrar zip powertop x264 lzip apparmor lz4 wireplumber lzop p7zip noto-fonts-emoji ttf-font-awesome libva-utils man-db chrony dbus-broker lame blueman irqbalance pipewire{,-pulse,-jack,-alsa} --noconfirm 
 
 # Setting up the hostname.
 echo "$hostname" > /mnt/etc/hostname
