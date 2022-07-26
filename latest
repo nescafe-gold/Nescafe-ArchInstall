@@ -538,14 +538,34 @@ info_print "Updating pacman mirrors"
 
 # Update Mirrors
 pacman -Syy reflector --needed --noconfirm 
-reflector --verbose --country "$country" --age 12 --latest 10 --sort rate --protocol https --save /etc/pacman.d/mirrorlist 
-pacman -Syy --noconfirm 
 
+cat << EOF > /mnt/etc/xdg/reflector/reflector.conf
+# Set the output path where the mirrorlist will be saved (--save).
+--save /etc/pacman.d/mirrorlist
+
+# Select the transfer protocol and IP-versions when syncing mirrorlist.
+--protocol https
+--ipv6
+--ipv4
+
+# Use only these countries when using the mirror list
+--country GB,DE 
+
+# Use only the  most recently synchronized mirrors (--latest).
+--latest 10
+--age 12
+
+# Sort the mirrors by MirrorStatus score
+--sort rate
+EOF
+
+
+reflector --age 12 --latest 10 --sort rate --protocol https --save /etc/pacman.d/mirrorlist 
+pacman -Syy --noconfirm 
 
 # Pacstrap (setting up a base system onto the new root).
 info_print "Installing the base system (it may take a while)."
 pacstrap /mnt base "$kernel" "$microcode" linux-firmware "$kernel"-headers btrfs-progs rsync snapper reflector snap-pac zram-generator git zsh gptfdisk booster zstd iwd networkmanager mesa vulkan-intel libva-mesa-driver openssh mesa-vdpau libvirt refind rustup zsh sshguard neovim nano rust-analyzer xdg-user-dirs zram-generator pigz pbzip2 snapper a52dec faac iptables-nft git faad2 flac jasper grim libmad libmpeg2 libtheora libvorbis compsize nftables wavpack xvidcore libde265 polkit-gnome mako slurp libxv noto-fonts btrfs-progs udiskie imv mpv lrzip unrar zip powertop x264 lzip apparmor lz4 wireplumber lzop p7zip noto-fonts-emoji ttf-font-awesome libva-utils man-db chrony dbus-broker lame blueman irqbalance pipewire{,-pulse,-jack,-alsa} --noconfirm
-
 
 #archlinux-keyring
 
@@ -751,7 +771,7 @@ Target = pacman-mirrorlist
 Description = Updating pacman-mirrorlist with reflector and removing pacnew...
 When = PostTransaction
 Depends = reflector
-Exec = /bin/sh -c 'systemctl start reflector.service; if [ -f /etc/pacman.d/mirrorlist.pacnew ]; then rm /etc/pacman.d/mirrorlist.pacnew; fi'
+Exec = /bin/sh -c 'systemctl start reflector.service'
 EOF
 
 # Better IO Scheduler
