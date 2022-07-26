@@ -491,13 +491,13 @@ done
 mount -o ${COMMON_MOUNT_OPTS},subvol=@snapshots $BTRFS /mnt/.snapshots
 
 # Optional subvolumes
-mkdir -p /mnt/home/${username}/ProjectsNStuff
-mkdir -p/mnt/home/${username}/Documents
+mkdir -p "/mnt/home/${username}/ProjectsNStuff"
+mkdir -p "/mnt/home/${username}/Documents"
 
 
 #optionl mount points for extra subvolumes created earlier
-mount -o $MOUNT_OPTIONS,subvol=@ProjectsNStuff $BTRFS /mnt/home/${username}/ProjectsNStuff 
-mount -o $MOUNT_OPTIONS,subvol=@Documents $BTRFS /mnt/home/${username}/Documents 
+mount -o $MOUNT_OPTIONS,subvol=home/${username}/@ProjectsNStuff $BTRFS /mnt/home/${username}/ProjectsNStuff 
+mount -o $MOUNT_OPTIONS,subvol=home/${username}/@Documents $BTRFS /mnt/home/${username}/Documents 
 
 
 # Recommended to Disable COW for VM's or databases. Disabling /var/log
