@@ -545,11 +545,8 @@ fi
 info_print "Adding Blackarch repository to pacman config"
 if [[ $BLACKARCH = "TRUE" || $BLACKARCH = "True" || $BLACKARCH = "true" ]]
 then
-    arch-chroot cd /tmp; curl -O https://blackarch.org/strap.sh; chmod +x strap.sh; ./strap.sh; rm ./strap.sh; cd  
+    arch-chroot curl -O https://blackarch.org/strap.sh; chmod +x strap.sh; ./strap.sh; rm ./strap.sh  
 fi
-
-
-
 
 info_print "Updating pacman mirrors"
 # Update Mirrors
