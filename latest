@@ -481,7 +481,7 @@ mount -o $MOUNT_OPTIONS,subvol=@ $BTRFS /mnt
 mkdir -p /mnt/{boot,home}
 mkdir -p var/{cache,log,tmp,abs}
 mkdir /mnt/srv
-mkdir .snapshots
+mkdir /mnt/.snapshots
 
 
 mount -o $MOUNT_OPTIONS,subvol=@home $BTRFS /mnt/home 
@@ -921,8 +921,7 @@ net.ipv4.conf.default.send_redirects = 0
 net.core.default_qdisc = fq_pie
 EOF
 
-SSHGuard
-
+# SSHGuard
 cat << EOF > /etc/sshguard.conf
 # Full path to backend executable (required, no default)
 BACKEND="/usr/lib/sshguard/sshg-fw-nft-sets"
@@ -946,8 +945,7 @@ IPV6_SUBNET=64
 IPV4_SUBNET=24
 EOF
 
-Automatic logout
-
+#Automatic logout
 cat << EOF > /etc/profile.d/shell-timeout.sh
 TMOUT="\$(( 60*30 ))";
 [ -z "\$DISPLAY" ] && export TMOUT;
@@ -971,7 +969,7 @@ cd
 
 
 #Add rEFInd theme
-mkdir /boot/EFI/refind/themes  && \
+mkdir /boot/EFI/refind/themes  
 git clone https://github.com/dheishman/refind-dreary.git /boot/EFI/refind/themes/refind-dreary-git 
 mv /boot/EFI/refind/themes/refind-dreary-git/highres /boot/EFI/refind/themes/refind-dreary 
 rm -dR /boot/EFI/refind/themes/refind-dreary-git
