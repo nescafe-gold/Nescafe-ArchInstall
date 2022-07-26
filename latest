@@ -443,12 +443,12 @@ mkfs.vfat -F32 -n "$EFI_LABEL" $EFI &>/dev/null
 
 # Creating a LUKS Container for the root partition.
 info_print "Creating LUKS Container for the root partition."
-echo -n "$lukspass" | cryptsetup luksFormat $ENCRYPTION_OPTIONS $CRYPTSYSTEM -d - &>/dev/null
+echo -n "$lukspass" | cryptsetup luksFormat $ENCRYPTION_OPTIONS $CRYPTSYSTEM -d -
 echo -n "$lukspass" | cryptsetup --allow-discards --perf-no_read_workqueue --perf-no_write_workqueue --persistent open $CRYPTSYSTEM $ENCRYPTED_BTRFS_VOLUMES_LABEL -d - 
 
 # Formatting the LUKS Container as BTRFS.
 info_print "Formatting the LUKS container as BTRFS."
-mkfs.btrfs -L "$ENCRYPTED_BTRFS_VOLUMES_LABEL" -f $BTRFS &>/dev/null
+mkfs.btrfs -L "$ENCRYPTED_BTRFS_VOLUMES_LABEL" -f $BTRFS 
 
 # Mounting $BTRFS to /mnt
 info_print "Mounting $BTRFS to /mnt"
