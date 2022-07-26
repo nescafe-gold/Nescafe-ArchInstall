@@ -619,9 +619,7 @@ echo "$hostname" > /mnt/etc/hostname
 info_print "Setting up hosts file at /etc/hosts"
 echo -e "\n127.0.0.1\tlocalhost\n::1\t\tlocalhost\n127.0.1.1\t${hostname}.localdomain\t$hostname" >> /mnt/etc/hosts
 
-# Generating a new initramfs.
-info_print "Generating a new initramfs for $kernel"
-arch-chroot /mnt mkinitcpio -P $kernel 
+
 
 # Setting root password.
 info_print "Setting root password."
@@ -638,19 +636,16 @@ if [[ -n "$username" ]]; then
 
     info_print "make user $username not need password for sudo commands temporarily (only for this install)"
     sed -i '/^# %wheel ALL=(ALL) NOPASSWD: ALL/s/^# //' /mnt/etc/sudoers
-
 fi
 
-info_print "Set timestamp_timeout default to 0 "
+info_print "Set sudo timestamp_timeout default to 0 "
 echo "Defaults timestamp_timeout=0" >> /mnt/etc/sudoers
-
 
 info_print "Adding Multilib repository to pacman config"
 if [[ $MULTILIB = "TRUE" || $MULTILIB = "True" || $MULTILIB = "true" ]]
 then
     sed -i "/\[multilib\]/,/Include/"'s/^#//' /mnt/etc/pacman.conf
 fi
-
 
 info_print "Adding Blackarch repository to pacman config"
 if [[ $BLACKARCH = "TRUE" || $BLACKARCH = "True" || $BLACKARCH = "true" ]]
@@ -659,14 +654,14 @@ then
 fi
 
 info_print "Installing Paru"
-# Let users in wheel group run sudo commands without password for automated paru install
-
 arch-chroot clone https://aur.archlinux.org/paru.git /root/paru; cd /root/paru; su -c "makepkg -si" -s /bin/sh $username; cd /root/Nescafe-ArchInstall; rm -r /root/paru
 
 info_print "Enabling BottomUp setting in paru config"
 sed -i "s/^#BottomUp$/BottomUp/" /mnt/etc/paru.conf
 
 #arch-chroot /mnt virt_check
+arch chroot /mnt su $username -c "sudo refind-install"
+
 
 info_print "Instaling more packages"
 arch-chroot /mnt paru -S --noremovemake --nodiffmenu --batchinstall --editmenu --noconfirm -S linux-xanmod-tt linux-xanmod-tt-headers firefox-extension-https-everywhere entr dbus-broker wireplumber firefox-ublock-origin irqbalance compsize haveged profile-sync-daemon lzip sbsigntools lrzip powertop p7zip lzop lame unarj firefox-dark-reader firefox-decentraleyes libva-utils apparmor arj cpio lha xarchiver slurp grimudiskie libsecret jasper tlp faad2 hyperfine ripgrep sshguard kanshi chrony snapper pbzip2 pigz tokei bc refind refind-btrfs 
@@ -686,8 +681,9 @@ then
     echo "options snd_ac97_codec power_save=10" > /mnt/etc/modprobe.d/audio_powersave.conf
 fi
 
-# Since Linux 4.15 there is a new setting called med_power_with_dipm that matches the behaviour of Windows IRST driver settings and should not cause data loss with recent SSD/HDD drives. The power saving can be significant, ranging from 1.0 to 1.5 Watts (when idle).
+# Since Linux 4.15 there is a new setting called med_power_with_dipm that matches the behaviour of Windows IRST driver settings and should not cause data loss with recent SSD/HDD drives. 
 
+info_print "Enable disk power saving mode. power saving can be significant, ranging from 1.0 to 1.5 Watts (when idle)."
 echo 'ACTION=="add", SUBSYSTEM=="scsi_host", KERNEL=="host*", ATTR{link_power_management_policy}="med_power_with_dipm"' > /mnt/etc/udev/rules.d/hd_power_save.rules
 
 # Prevent snapshot slowdowns
@@ -695,9 +691,11 @@ info_print "prevent snapshot slowdown by excluding /etc/updatedb.conf from COW"
 echo 'PRUNENAMES = ".snapshots"' >> /mnt/etc/updatedb.conf
 
 # Most important command! Get rid of the beep!
+info_print "Disable speaker beep sound when using autocomplete"
 arch-chroot /mnt rmmod pcspkr
 echo "blacklist pcspkr" > /mnt/etc/modprobe.d/nobeep.conf
 
+info_print "Setting up reflector config file"
 cat << EOF > /mnt/etc/xdg/reflector/reflector.conf
 # Set the output path where the mirrorlist will be saved (--save).
 --save /etc/pacman.d/mirrorlist
@@ -718,6 +716,7 @@ cat << EOF > /mnt/etc/xdg/reflector/reflector.conf
 --sort rate
 EOF
 
+info_print "Setting up reflector hook to autoupdate the mirrors after every pacman -S command"
 # Reflector hook
 cat << EOF > /mnt/etc/pacman.d/hooks/mirrorupgrade.hook
 [Trigger]
@@ -1137,9 +1136,10 @@ sudo systemctl enable --now refind-btrfs
 sudo systemctl enable --now greetd
 rm /home/$username/init.sh
 EOF
-arch-chroot /mnt chown $username /home/$username/init.sh
-arch-chroot /mnt su $username -s /home/$username/init.sh
+arch-chroot /mnt su -c "chown $username /home/$username/init.sh" $username
+arch-chroot /mnt chmod +x /home/$username/init.sh
 
+arch-chroot /mnt su -c "/home/$username/init.sh" $username
 
 # Finishing up.
 info_print "Done, you may now wish to reboot (further changes can be done by chrooting into /mnt)."
