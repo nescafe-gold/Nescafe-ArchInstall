@@ -439,7 +439,6 @@ info_print "Formatting the EFI Partition as FAT32."
 #mkfs.fat -F32 -n EFI /dev/disk/by-partlabel/EFI
 mkfs.vfat -F32 -n "$EFI_LABEL" $EFI 
 
-
 # Creating a LUKS Container for the root partition.
 info_print "Creating LUKS Container for the root partition."
 echo -n "$lukspass" | cryptsetup luksFormat $ENCRYPTION_OPTIONS "$CRYPTSYSTEM" -d - 
@@ -457,32 +456,29 @@ for subvol in '' "${subvols[@]}"; do
     btrfs su cr /mnt/@"$subvol" 
 done
 
-mkdir -p /mnt/home/${username}/ProjectsNStuff
-mkdir -p/mnt/home/${username}/Documents
-
 # Extra subvolumes (not necessary)
-btrfs sub create /mnt/common/@ProjectsNStuff 
-btrfs sub create /mnt/common/@Documents 
+btrfs sub create /mnt/home/${username}/@ProjectsNStuff 
+btrfs sub create /mnt/home/${username}/@Documents 
 
-# Mounting the newly created subvolumes.
 umount /mnt
 
-
+# Mounting the newly created subvolumes.
 info_print "Mounting the newly created subvolumes."
 
+# Mount options
 HDD_MOUNT_OPTIONS="noatime,compress-force=zstd,autodefrag"
 SSD_MOUNT_OPTIONS="$HDD_MOUNT_OPTIONS,space_cache=v2,ssd,commit=120,discard=async"
 
 MOUNT_OPTIONS=$SSD_MOUNT_OPTIONS
 STRICT_MOUNT_OPTIONS="noexec,nodev,nosuid,$MOUNT_OPTIONS"
 
-
+# Mount /mnt directory with SSD options
 mount -o $MOUNT_OPTIONS,subvol=@ $BTRFS /mnt
+
 mkdir -p /mnt/{boot,home}
 mkdir -p /mnt/var/{cache,log,tmp,abs}
 mkdir -p /mnt/srv
 mkdir -p /mnt/.snapshots
-
 
 mount -o $MOUNT_OPTIONS,subvol=@home $BTRFS /mnt/home 
 mount -o $MOUNT_OPTIONS,subvol=@srv $BTRFS /mnt/srv
@@ -492,7 +488,17 @@ for target in $(echo $strict_mount_targets); do
     mount -o $STRICT_MOUNT_OPTIONS,subvol=@$target /mnt/var/$target
 done
 
-mount -o ${COMMON_MOUNT_OPTS},subvol=@snapshots $BTRFS /mnt/.snapshots 
+mount -o ${COMMON_MOUNT_OPTS},subvol=@snapshots $BTRFS /mnt/.snapshots
+
+# Optional subvolumes
+mkdir -p /mnt/home/${username}/ProjectsNStuff
+mkdir -p/mnt/home/${username}/Documents
+
+
+#optionl mount points for extra subvolumes created earlier
+mount -o $MOUNT_OPTIONS,subvol=@ProjectsNStuff $BTRFS /mnt/home/${username}/ProjectsNStuff 
+mount -o $MOUNT_OPTIONS,subvol=@Documents $BTRFS /mnt/home/${username}/Documents 
+
 
 # Recommended to Disable COW for VM's or databases. Disabling /var/log
 chattr +C /mnt/var/log
