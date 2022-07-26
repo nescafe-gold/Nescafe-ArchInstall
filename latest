@@ -504,10 +504,10 @@ mount -o $MOUNT_OPTIONS,subvolid=5 $BTRFS /mnt/btrfs
 
 info_print "Mounting the extra BTRFS subvolumes."
 # Extra subvolumes
-mkdir -p /mnt/home/$username/{Documents,ProjectsNStuff}
+#mkdir -p /mnt/home/$username/{Documents,ProjectsNStuff}
 
-mount $BTRFS -o $MOUNT_OPTIONS,subvol=home/${username}/@Documents /mnt/home/${username}/Documents
-mount $BTRFS -o $MOUNT_OPTIONS,subvol=home/${username}/@ProjectsNStuff /mnt/home/${username}/ProjectsNStuff
+#mount $BTRFS -o $MOUNT_OPTIONS,subvol=home/${username}/@Documents /mnt/home/${username}/Documents
+#mount $BTRFS -o $MOUNT_OPTIONS,subvol=home/${username}/@ProjectsNStuff /mnt/home/${username}/ProjectsNStuff
 
 
 # Recommended to Disable COW for VM's or databases. Disabling /var/log
