@@ -480,8 +480,8 @@ STRICT_MOUNT_OPTIONS="noexec,nodev,nosuid,$MOUNT_OPTIONS"
 mount -o $MOUNT_OPTIONS,subvol=@ $BTRFS /mnt
 mkdir -p /mnt/{boot,home}
 mkdir -p var/{cache,log,tmp,abs}
-mkdir /mnt/srv
-mkdir /mnt/.snapshots
+mkdir -p /mnt/srv
+mkdir -p /mnt/.snapshots
 
 
 mount -o $MOUNT_OPTIONS,subvol=@home $BTRFS /mnt/home 
@@ -663,7 +663,7 @@ echo 'PRUNENAMES = ".snapshots"' >> /etc/updatedb.conf
 
 # Boot backup hook.
 info_print "Configuring /boot backup when pacman transactions are made."
-mkdir /mnt/etc/pacman.d/hooks
+mkdir -p /mnt/etc/pacman.d/hooks
 cat > /mnt/etc/pacman.d/hooks/50-bootbackup.hook <<EOF
 [Trigger]
 Operation = Upgrade
@@ -969,7 +969,7 @@ cd
 
 
 #Add rEFInd theme
-mkdir /boot/EFI/refind/themes  
+mkdir -p /boot/EFI/refind/themes  
 git clone https://github.com/dheishman/refind-dreary.git /boot/EFI/refind/themes/refind-dreary-git 
 mv /boot/EFI/refind/themes/refind-dreary-git/highres /boot/EFI/refind/themes/refind-dreary 
 rm -dR /boot/EFI/refind/themes/refind-dreary-git
