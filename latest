@@ -146,7 +146,7 @@ username_selector () {
 }
 
 userpass_selector() {
-    if [ -z "$USER_PASSWORD" ]
+    if [ -z $USER_PASSWORD ]
     then
         input_print "Please enter a password for $username (you're not going to see the password): "
         read -r -s userpass
