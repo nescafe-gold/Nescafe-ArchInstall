@@ -135,7 +135,7 @@ lukspass_selector () {
 username_selector () {
     if [ -z "$USER_NAME" ]
     then
-        input_print "Please enter name for a user account (enter empty to not create one): "
+        input_print "Please enter name for a user account: "
         read -r username
         if [[ -z "$username" ]]; then
             return 0
@@ -322,9 +322,6 @@ until lukspass_selector; do : ; done
 # Setting up the kernel.
 until kernel_selector; do : ; done
 
-# User choses the network.
-until network_selector; do : ; done
-
 # If LOCALE is empty, then select locale and setup keyboard 
 until locale_selector; do : ; done
 
@@ -332,7 +329,8 @@ until locale_selector; do : ; done
 until hostname_selector; do : ; done
 
 # Prompt to create username if USER_NAME variable is empty. Also give option to skip creating a username
-username_selector
+until username_selector; do : ; done
+
 # If user chose to create a username and if the USER_PASSWORD variable is empty then prompt for a password
 until userpass_selector; do : ; done
 # If ROOT_PASSWORD is empty, then prompt for a password
