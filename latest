@@ -485,7 +485,7 @@ mount -o $MOUNT_OPTIONS,subvol=@srv $BTRFS /mnt/srv
 
 strict_mount_targets="cache log abs tmp"
 for target in $(echo $strict_mount_targets); do 
-    mount -o $STRICT_MOUNT_OPTIONS,subvol=@$target /mnt/var/$target
+    mount $CRYPTSYSTEM -o $STRICT_MOUNT_OPTIONS,subvol=@$target /mnt/var/$target
 done
 
 mount -o ${COMMON_MOUNT_OPTS},subvol=@snapshots $BTRFS /mnt/.snapshots
