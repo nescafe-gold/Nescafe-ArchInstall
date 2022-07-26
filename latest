@@ -535,33 +535,14 @@ info_print "Configure makepkg.conf to compile packages with all CPU cores"
 sed -i "s/-j2/-j$(nproc)/;/^#MAKEFLAGS/s/^#//" /etc/makepkg.conf
 
 info_print "Updating pacman mirrors"
-
 # Update Mirrors
 pacman -Syy reflector --needed --noconfirm 
-
-cat << EOF > /mnt/etc/xdg/reflector/reflector.conf
-# Set the output path where the mirrorlist will be saved (--save).
---save /etc/pacman.d/mirrorlist
-
-# Select the transfer protocol and IP-versions when syncing mirrorlist.
---protocol https
---ipv6
---ipv4
-
-# Use only these countries when using the mirror list
---country GB,DE 
-
-# Use only the  most recently synchronized mirrors (--latest).
---latest 10
---age 12
-
-# Sort the mirrors by MirrorStatus score
---sort rate
-EOF
-
-
 reflector --age 12 --latest 10 --sort rate --protocol https --save /etc/pacman.d/mirrorlist 
-pacman -Syy --noconfirm 
+
+info_print "syncing repositories and downloading keyring"
+pacman -Syy archlinux-keyring --noconfirm 
+
+info_print "Updating keyring"
 
 # Pacstrap (setting up a base system onto the new root).
 info_print "Installing the base system (it may take a while)."
@@ -716,6 +697,26 @@ echo 'PRUNENAMES = ".snapshots"' >> /mnt/etc/updatedb.conf
 # Most important command! Get rid of the beep!
 arch-chroot /mnt rmmod pcspkr
 echo "blacklist pcspkr" > /mnt/etc/modprobe.d/nobeep.conf
+
+cat << EOF > /mnt/etc/xdg/reflector/reflector.conf
+# Set the output path where the mirrorlist will be saved (--save).
+--save /etc/pacman.d/mirrorlist
+
+# Select the transfer protocol and IP-versions when syncing mirrorlist.
+--protocol https
+--ipv6
+--ipv4
+
+# Use only these countries when using the mirror list
+--country GB,DE 
+
+# Use only the  most recently synchronized mirrors (--latest).
+--latest 10
+--age 12
+
+# Sort the mirrors by MirrorStatus score
+--sort rate
+EOF
 
 # Reflector hook
 cat << EOF > /mnt/etc/pacman.d/hooks/mirrorupgrade.hook
