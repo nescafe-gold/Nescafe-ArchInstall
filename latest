@@ -475,10 +475,10 @@ STRICT_MOUNT_OPTIONS="noexec,nodev,nosuid,$MOUNT_OPTIONS"
 # Mount /mnt directory with SSD options
 mount -o $MOUNT_OPTIONS,subvol=@ $BTRFS /mnt
 
-tmphomedir="/mnt/home/${username}"
+#tmphomedir="/mnt/home/${username}"
 
 mkdir -p /mnt/{boot,home}
-mkdir -p $tmphomedir
+#mkdir -p $tmphomedir
 mkdir -p /mnt/var/{cache,log,tmp,abs}
 mkdir -p /mnt/srv
 mkdir -p /mnt/.snapshots
@@ -495,14 +495,14 @@ done
 mount -o ${COMMON_MOUNT_OPTS},subvol=@snapshots $BTRFS /mnt/.snapshots
 
 # Optional subvolumes
-mkdir -p "$tmphomedir/ProjectsNStuff"
-mkdir -p "$tmphomedir/Documents"
+#mkdir -p "$tmphomedir/ProjectsNStuff"
+#mkdir -p "$tmphomedir/Documents"
 
-mounthomedir="home/${username}"
+#mounthomedir="home/${username}"
 
 #optionl mount points for extra subvolumes created earlier
-mount -$BTRFS -o $MOUNT_OPTIONS,subvol=$mounthomedir/@ProjectsNStuff /mnt/home/${username}/ProjectsNStuff 
-mount $BTRFS -o $MOUNT_OPTIONS,subvol=$mounthomedir/@Documents $BTRFS /mnt/home/${username}/Documents 
+#mount -$BTRFS -o $MOUNT_OPTIONS,subvol=$mounthomedir/@ProjectsNStuff /mnt/home/${username}/ProjectsNStuff 
+#mount $BTRFS -o $MOUNT_OPTIONS,subvol=$mounthomedir/@Documents $BTRFS /mnt/home/${username}/Documents 
 
 
 # Recommended to Disable COW for VM's or databases. Disabling /var/log
