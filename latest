@@ -537,10 +537,9 @@ sed -i "s/-j2/-j$(nproc)/;/^#MAKEFLAGS/s/^#//" /etc/makepkg.conf
 info_print "Updating pacman mirrors"
 
 # Update Mirrors
-pacman -Syy reflector --needed --noconfirm
-reflector --verbose --country "$country" --age 12 --latest 10 --sort rate --protocol https --save /etc/pacman.d/mirrorlist
-pacman -Syy --noconfirm
-
+pacman -Syy reflector --needed --noconfirm &>/dev/null
+reflector --verbose --country "$country" --age 12 --latest 10 --sort rate --protocol https --save /etc/pacman.d/mirrorlist &>/dev/null
+pacman -Syy --noconfirm &>/dev/null
 
 virt_check
 
