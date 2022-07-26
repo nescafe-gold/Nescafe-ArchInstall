@@ -487,6 +487,7 @@ MOUNT_OPTIONS=$SSD_MOUNT_OPTIONS
 STRICT_MOUNT_OPTIONS="noexec,nodev,nosuid,$MOUNT_OPTIONS"
 
 mount -o $MOUNT_OPTIONS,subvol=arch/@ $BTRFS /mnt
+
 mkdir -p /mnt/{boot,home,var/cache,var/log,.snapshots,btrfs,var/tmp,var/abs,srv}
 
 mount -o $MOUNT_OPTIONS,subvol=arch/@home $BTRFS /mnt/home
@@ -503,9 +504,10 @@ mount -o $MOUNT_OPTIONS,subvolid=5 $BTRFS /mnt/btrfs
 
 info_print "Mounting the extra BTRFS subvolumes."
 # Extra subvolumes
-mkdir -p /mnt/media/{devel,games}
-mount $BTRFS -o $MOUNT_OPTIONS,subvol=common/@Documents /mnt/home/${username}/Documents
-mount $BTRFS -o $MOUNT_OPTIONS,subvol=common/@ProjectsNStuff /mnt/home/${username}/ProjectsNStuff
+mkdir -p /home/$username/{Documents,ProjectsNStuff}
+
+mount $BTRFS -o $MOUNT_OPTIONS,subvol=home/${username}/@Documents /mnt/home/${username}/Documents
+mount $BTRFS -o $MOUNT_OPTIONS,subvol=home/${username}/@ProjectsNStuff /mnt/home/${username}/ProjectsNStuff
 
 
 # Recommended to Disable COW for VM's or databases. Disabling /var/log
