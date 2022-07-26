@@ -479,7 +479,7 @@ STRICT_MOUNT_OPTIONS="noexec,nodev,nosuid,$MOUNT_OPTIONS"
 
 mount -o $MOUNT_OPTIONS,subvol=@ $BTRFS /mnt
 mkdir -p /mnt/{boot,home}
-mkdir -p var/{cache,log,tmp,abs}
+mkdir -p /mnt/var/{cache,log,tmp,abs}
 mkdir -p /mnt/srv
 mkdir -p /mnt/.snapshots
 
