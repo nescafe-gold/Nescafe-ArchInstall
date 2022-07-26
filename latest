@@ -434,32 +434,50 @@ BTRFS="/dev/mapper/${ENCRYPTED_BTRFS_VOLUMES_LABEL}"
 info_print "Informing the Kernel about the disk changes."
 partprobe "$DISK"
 
-# Formatting the EFI as FAT32.
-info_print "Formatting the EFI Partition as FAT32." 
-#mkfs.fat -F32 -n EFI /dev/disk/by-partlabel/EFI
-mkfs.vfat -F32 -n "$EFI_LABEL" $EFI 
-
 # Creating a LUKS Container for the root partition.
 info_print "Creating LUKS Container for the root partition."
 echo -n "$lukspass" | cryptsetup luksFormat $ENCRYPTION_OPTIONS "$CRYPTSYSTEM" -d - 
 echo -n "$lukspass" | cryptsetup --allow-discards --perf-no_read_workqueue --perf-no_write_workqueue --persistent open "$CRYPTSYSTEM" $ENCRYPTED_BTRFS_VOLUMES_LABEL -d - 
 
+# Formatting the EFI as FAT32.
+info_print "Formatting the EFI Partition as FAT32." 
+#mkfs.fat -F32 -n EFI /dev/disk/by-partlabel/EFI
+mkfs.vfat -F32 -n "$EFI_LABEL" $EFI 
+
+
 # Formatting the LUKS Container as BTRFS.
 info_print "Formatting the LUKS container as BTRFS."
-mkfs.btrfs -L "$ENCRYPTED_BTRFS_VOLUMES_LABEL" -f "$BTRFS" 
-mount "$BTRFS" /mnt
+mkfs.btrfs -L "$ENCRYPTED_BTRFS_VOLUMES_LABEL" -f $BTRFS 
 
-# Creating BTRFS subvolumes.
-info_print "Creating BTRFS subvolumes."
-subvols=(snapshots var_pkgs var_log home srv cache tmp)
-for subvol in '' "${subvols[@]}"; do
-    btrfs su cr /mnt/@"$subvol" 
-done
+# Mounting $BTRFS to /mnt
+info_print "Mounting $BTRFS to /mnt"
+mount $BTRFS /mnt
 
+info_print "Creating system BTRFS subvolumes"
+mkdir /mnt/arch
+
+btrfs sub create /mnt/arch/@
+btrfs sub create /mnt/arch/@home
+btrfs sub create /mnt/arch/@abs
+btrfs sub create /mnt/arch/@tmp
+btrfs sub create /mnt/arch/@srv
+btrfs sub create /mnt/arch/@snapshots
+btrfs sub create /mnt/@btrfs     
+btrfs sub create /mnt/arch/@log
+btrfs sub create /mnt/arch/@cache
+
+info_print "Creating extra subvolumes"
+# Extra subvolumes (not necessary)
+mkdir /mnt/common
+btrfs sub create /mnt/common/@Documents
+btrfs sub create /mnt/common/@ProjectsNStuff
+
+info_print "Unmounting /mnt"
+# Remember to umount
 umount /mnt
 
 # Mounting the newly created subvolumes.
-info_print "Mounting the newly created subvolumes."
+info_print "Mounting the system BTRFS subvolumes."
 
 # Mount options
 HDD_MOUNT_OPTIONS="noatime,compress-force=zstd,autodefrag"
@@ -468,37 +486,26 @@ SSD_MOUNT_OPTIONS="$HDD_MOUNT_OPTIONS,space_cache=v2,ssd,commit=120,discard=asyn
 MOUNT_OPTIONS=$SSD_MOUNT_OPTIONS
 STRICT_MOUNT_OPTIONS="noexec,nodev,nosuid,$MOUNT_OPTIONS"
 
-# Mount /mnt directory with SSD options
-mount -o $MOUNT_OPTIONS,subvol=@ $BTRFS /mnt
+mount -o $MOUNT_OPTIONS,subvol=arch/@ $CRYPTSYSTEM /mnt
+mkdir -p /mnt/{boot,home,var/cache,var/log,.snapshots,btrfs,var/tmp,var/abs,srv}
 
-#tmphomedir="/mnt/home/${username}"
-
-mkdir -p /mnt/{boot,home}
-#mkdir -p $tmphomedir
-mkdir -p /mnt/var/{cache,log,tmp,abs}
-mkdir -p /mnt/srv
-mkdir -p /mnt/.snapshots
-
-
-mount -o $MOUNT_OPTIONS,subvol=@home $BTRFS /mnt/home 
-mount -o $MOUNT_OPTIONS,subvol=@srv $BTRFS /mnt/srv
+mount -o $MOUNT_OPTIONS,subvol=arch/@home $CRYPTSETUP /mnt/home
+mount -o $MOUNT_OPTIONS,subvol=arch/@srv $CRYPTSETUP /mnt/srv
 
 strict_mount_targets="cache log abs tmp"
-for target in $(echo $strict_mount_targets); do 
-    mount $CRYPTSYSTEM -o $STRICT_MOUNT_OPTIONS,subvol=@$target /mnt/var/$target
+for target in $(echo $strict_mount_targets)
+    do mount /dev/mapper/crypt -o $STRICT_MOUNT_OPTIONS,subvol=arch/@$target /mnt/var/$target
 done
 
-mount -o ${COMMON_MOUNT_OPTS},subvol=@snapshots $BTRFS /mnt/.snapshots
+mount -o $MOUNT_OPTIONS,subvol=arch/@snapshots $CRYPTSYSTEM /mnt/.snapshots
+mount -o $MOUNT_OPTIONS,subvolid=5 $CRYPTSYSTEM /mnt/btrfs
 
-# Optional subvolumes
-#mkdir -p "$tmphomedir/ProjectsNStuff"
-#mkdir -p "$tmphomedir/Documents"
 
-mounthomedir="home/${username}"
-
-#optionl mount points for extra subvolumes created earlier
-mount -$BTRFS -o $MOUNT_OPTIONS,subvol=$mounthomedir/@ProjectsNStuff /mnt/home/${username}/ProjectsNStuff 
-mount $BTRFS -o $MOUNT_OPTIONS,subvol=$mounthomedir/@Documents $BTRFS /mnt/home/${username}/Documents 
+info_print "Mounting the extra BTRFS subvolumes."
+# Extra subvolumes
+mkdir -p /mnt/media/{devel,games}
+mount $CRYPTSYSTEM -o $MOUNT_OPTIONS,subvol=common/@Documents /mnt/home/${username}/Documents
+mount $CRYPTSYSTEM -o $MOUNT_OPTIONS,subvol=common/@ProjectsNStuff /mnt/home/${username}/ProjectsNStuff
 
 
 # Recommended to Disable COW for VM's or databases. Disabling /var/log
