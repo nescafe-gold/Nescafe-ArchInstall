@@ -626,7 +626,6 @@ info_print "Setting root password."
 echo "root:$rootpass" | arch-chroot /mnt chpasswd
 
 # Setting user password.
-info_print "Setting up user password"
 if [[ -n "$username" ]]; then
     info_print "Adding the user $username to the system"
     arch-chroot /mnt groupadd adbusers 
@@ -634,7 +633,7 @@ if [[ -n "$username" ]]; then
     arch-chroot /mnt useradd -m -G power,input,audio,wheel,storage,rfkill,network,video,scanner,adbusers,wireshark -s /usr/bin/zsh "$username"
     
     info_print "Setting user password for $username. Here is the password $userpass"
-    arch-chroot /mnt echo -e "$userpass" | passwd $username
+    echo "$username:$userpass" | arch-chroot /mnt chpasswd
 
     info_print "make user $username not need password for sudo commands temporarily (only for this install)"
     sed -i '/^# %wheel ALL=(ALL) NOPASSWD: ALL/s/^# //' /mnt/etc/sudoers
