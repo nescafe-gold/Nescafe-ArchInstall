@@ -496,8 +496,8 @@ mkdir -p "/mnt/home/${username}/Documents"
 
 
 #optionl mount points for extra subvolumes created earlier
-mount -o $MOUNT_OPTIONS,subvol=home/${username}/@ProjectsNStuff $BTRFS /mnt/home/${username}/ProjectsNStuff 
-mount -o $MOUNT_OPTIONS,subvol=home/${username}/@Documents $BTRFS /mnt/home/${username}/Documents 
+mount -$BTRFS -o $MOUNT_OPTIONS,subvol=home/${username}/@ProjectsNStuff /mnt/home/${username}/ProjectsNStuff 
+mount $BTRFS -o $MOUNT_OPTIONS,subvol=home/${username}/@Documents $BTRFS /mnt/home/${username}/Documents 
 
 
 # Recommended to Disable COW for VM's or databases. Disabling /var/log
