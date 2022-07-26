@@ -465,9 +465,11 @@ info_print "Mounting the newly created subvolumes."
 
 COMMON_MOUNT_OPTS="ssd,noatime,compress-force=zstd,commit=120,space_cache=v2,discard=async,autodefrag"
 
-mkdir -p /mnt/{boot,home,var/cache,var/log,.snapshots,var/tmp,srv}
 
 mount -o ${COMMON_MOUNT_OPTS},subvol=@ $BTRFS /mnt
+mkdir -p /mnt/{boot,home,var/cache,var/log,.snapshots,var/tmp,srv}
+
+
 mount -o ${COMMON_MOUNT_OPTS},subvol=@home $BTRFS /mnt/home 
 mount -o ${COMMON_MOUNT_OPTS},subvol=@srv $BTRFS /mnt/srv
 mount -o ${COMMON_MOUNT_OPTS},nodev,nosuid,noexec,subvol=@log $BTRFS /mnt/var/log
