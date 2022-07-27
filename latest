@@ -611,18 +611,12 @@ arch-chroot /mnt echo "Defaults timestamp_timeout=0" >> /etc/sudoers
 info_print "Installing Paru"
 
 arch-chroot /mnt /bin/bash -e <<EOF
-    git clone https://aur.archlinux.org/paru.git 
-    cd paru
-    su -c "makepkg -si" -s /bin/sh $CURENT_USER
-    cd /
-    rm -r/paru
+    git clone https://aur.archlinux.org/paru.git ~/paru
+    cd ~/paru
+    su -c "makepkg -si" -s /bin/sh $username
+    cd ~/
+    rm -r ~/paru
 EOF
-
-
-arch-chroot /mnt 
-cd paru 
-exit
-rm -r /mnt/paru
 
 info_print "Enabling BottomUp setting in paru config"
 arch-chroot /mnt sed -i "s/^#BottomUp$/BottomUp/" /etc/paru.conf
