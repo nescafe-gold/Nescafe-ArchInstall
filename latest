@@ -606,7 +606,7 @@ echo "$username:$userpass" | arch-chroot /mnt chpasswd
 
 # Make user not require a password to automate paru commands and other user commands
 info_print "Make user not require a password to automate paru commands and other user commands"
-arch-chroot /mnt echo "$USER ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+arch-chroot /mnt echo "$username ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 info_print "Set sudo timestamp_timeout default to 0 "
 arch-chroot /mnt echo "Defaults timestamp_timeout=0" >> /etc/sudoers
