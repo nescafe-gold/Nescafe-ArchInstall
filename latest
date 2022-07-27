@@ -638,8 +638,6 @@ info_print " Setting up modprobe before setting up xanmod kernel"
 arch-chroot /mnt su -c "paru -S modprobed-db --noconfirm --needed" $username
 arch-chroot /mnt modprobed-db
 arch-chroot /mnt modprobed-db store
-arch-chroot /mnt systemctl start modprobed-db.service
-
 
 #arch-chroot /mnt su -c "paru -S modprobed-db --noconfirm --needed" $username
 #arch-chroot /mnt su -c "modprobed-db" $username
@@ -649,8 +647,8 @@ arch-chroot /mnt systemctl start modprobed-db.service
 
 info_print "Installing custom kernel xanmod-tt for better btrfs optionsand anbox support, amongst other useful features. This will take a long time because it is compiling the kernel (which is a massive package) from source."
 arch-chroot /mnt /bin/bash -e <<EOF
-    su -c "git clone https://aur.archlinux.org/linux-xanmod-tt.git /home/$username/linux-xanmod-tt"
-    cd /home/$username/linux-xanmod-tt
+    git clone https://aur.archlinux.org/linux-xanmod-tt.git /root/linux-xanmod-tt"
+    cd /root/linux-xanmod-tt
 
     # My CPU is 7th gen kaby lake which isnt a custom cpu architecture for xanmod. IF your CPU architecture is there then edit this number to reflect your architecture
 
