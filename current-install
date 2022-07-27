@@ -699,7 +699,6 @@ EOF
 
 info_print "Setting up reflector hook to autoupdate every time pacman-mirrorlist is updated"
 mkdir /mnt/etc/pacman.d/hooks
-touch /mnt/etc/pacman.d.hooks/mirrorupgrade.hook
 cat << EOF > /mnt/etc/pacman.d/hooks/mirrorupgrade.hook
 [Trigger]
 Operation = Upgrade
@@ -729,7 +728,7 @@ EOF
 
 #Zsh hook
 #What this does is refresh the known programs if you install new programs.
-
+info_print "setting up ZSH hook"
 cat << EOF > /etc/pacman.d/hooks/zsh.hook
 [Trigger]
 Operation = Install
@@ -742,7 +741,6 @@ Depends = zsh
 When = PostTransaction
 Exec = /usr/bin/install -Dm644 /dev/null /var/cache/zsh/pacman
 EOF
-
 
 info_print "Configuring IO Scheduler"
 # Better IO Scheduler
@@ -978,14 +976,14 @@ git clone https://github.com/dheishman/refind-dreary.git /mnt/boot/EFI/refind/th
 mv /mnt/boot/EFI/refind/themes/refind-dreary-git/highres /mnt/boot/EFI/refind/themes/refind-dreary 
 rm -dR /mnt/boot/EFI/refind/themes/refind-dreary-git
 
-info_print "Configure rEFInd"
+info_print "Configuring rEFInd"
 #Configure rEFInd
 sed -i 's/#resolution 3/resolution 1920 1080/' /mnt/boot/EFI/refind/refind.conf 
 sed -i 's/#use_graphics_for osx,linux/use_graphics_for linux/' /mnt/boot/EFI/refind/refind.conf 
 sed -i 's/#scanfor internal,external,optical,manual/scanfor manual,external/' /mnt/boot/EFI/refind/refind.conf
 sed -i 's/hideui.*/hideui singleuser,hints,arrows,badges/' /mnt/boot/EFI/refind/themes/refind-dreary/theme.conf
 
-info_print "Add rEFInd Manual Stanza"
+info_print "Addding rEFInd Manual Stanza"
 #Add rEFInd Manual Stanza (make sure ROOT_PARITION is set)
 cat << EOF >> /mnt/boot/EFI/refind/refind.conf
 
@@ -1014,32 +1012,31 @@ menuentry "Arch Linux - Low Latency" {
 include themes/refind-dreary/theme.conf
 EOF
 
+info_print "Configuring rEFInd BTRFS configuration (provided by refind-btrfs)"
 # Edit refind-btrfs
 sed -i 's/^selection_count.*/count = "inf"/' /mnt/etc/refind-btrfs.conf
 sed -i 's/^include_sub_menus.*/include_sub_menus = true/' /mnt/etc/refind-btrfs.conf
 
 info_print "Snapper configuration"
-arch-chroot /mnt /bin/bash -e <<EOF
-    su -c "sudo umount /.snapshots" $username
-    su -c "sudo rm -r /.snapshots" $username
-    su -c "sudo snapper -c root create-config /" $username
-    su -c "sudo mount -a" $username
-    su -c "sudo chmod 750 -R /.snapshots" $username
-    su -c "sudo chmod a+rx /.snapshots" $username
-    su -c "sudo chown :wheel /.snapshots" $username
 
+cat << EOF >> /home/$username/after-reboot.sh
+    sudo umount /.snapshots"
+    sudo rm -r /.snapshots"
+    sudo snapper -c root create-config / 
+    sudo mount -a" 
+    sudo chmod 750 -R /.snapshots"
+    sudo chmod a+rx /.snapshots"
+    sudo chown :wheel /.snapshots
 
     su -c "sudo snapper -c root create --description "Fresh Install"" $username
+
     su -c "sudo sed -i 's/^TIMELINE_MIN_AGE.*/TIMELINE_MIN_AGE="1800"/' /etc/snapper/configs/root" $username
     su -c "sudo sed -i 's/^TIMELINE_LIMIT_HOURLY.*/TIMELINE_LIMIT_HOURLY="0"/' /etc/snapper/configs/root" $username
     su -c "sudo sed -i 's/^TIMELINE_LIMIT_DAILY.*/TIMELINE_LIMIT_DAILY="7"/' /etc/snapper/configs/root" $username
     su -c "sudo sed -i 's/^TIMELINE_LIMIT_WEEKLY.*/TIMELINE_LIMIT_WEEKLY="0"/' /etc/snapper/configs/root" $username
     su -c "sudo sed -i 's/^TIMELINE_LIMIT_MONTHLY.*/TIMELINE_LIMIT_MONTHLY="0"/' /etc/snapper/configs/root" $username
     su -c "sudo sed -i 's/^TIMELINE_LIMIT_YEARLY.*/TIMELINE_LIMIT_YEARLY="0"/' /etc/snapper/configs/root" $username
-EOF
 
-
-arch-chroot /mnt /bin/bash -e <<EOF
     su -c "sudo systemctl enable --now snapper-timeline.timer snapper-cleanup.timer" $username
     su -c "sudo systemctl disable NetworkManager-wait-online" $username
     su -c "sudo systemctl mask NetworkManager-wait-online" $username
@@ -1063,11 +1060,61 @@ arch-chroot /mnt /bin/bash -e <<EOF
     su -c "sudo systemctl enable --now auto-cpufreq " $username
     su -c "sudo systemctl enable --now dbus-broker" $username
     su -c "sudo systemctl enable --now refind-btrfs" $username
-    su -c "sudo systemctl enable --now greetd" $username
 
+
+
+    sudo pacman -S modprobed-db --noconfirm --needed
+    modprobed-db
+    modprobed-db store
+    systemctl --user enable --now modprobed-db.service
+
+    echo
+    tput setaf 2
+    echo "################################################################"
+    echo "################### Start"
+    echo "################################################################"
+    tput sgr0
+    echo
+
+    git clone https://aur.archlinux.org/linux-xanmod-tt.git ~/linux-xanmod-tt
+
+    FIND="_microarchitecture=0"
+    REPLACE="_microarchitecture=38"
+    sed -i "s/$FIND/$REPLACE/g" ~/linux-xanmod/PKGBUILD
+
+    # FIND="use_numa=y"
+    # REPLACE="use_numa=n"
+    # sed -i "s/$FIND/$REPLACE/g" ~/linux-xanmod/PKGBUILD
+
+    # FIND="use_tracers=y"
+    # REPLACE="use_tracers=n"
+    # sed -i "s/$FIND/$REPLACE/g" ~/linux-xanmod/PKGBUILD
+
+    # FIND="_compiler=gcc"
+    # REPLACE="_compiler=gcc"
+    # sed -i "s/$FIND/$REPLACE/g" ~/linux-xanmod/PKGBUILD
+
+    # FIND="_compress_modules=n"
+    # REPLACE="_compress_modules=n"
+    # sed -i "s/$FIND/$REPLACE/g" ~/linux-xanmod/PKGBUILD
+
+    FIND="_localmodcfg=n"
+    REPLACE="_localmodcfg=y"
+    sed -i "s/$FIND/$REPLACE/g" ~/linux-xanmod/PKGBUILD
+
+    cd ~/linux-xanmod
+
+    makepkg -s --skippgpcheck
+
+    echo
+    tput setaf 2
+    echo "################################################################"
+    echo "################### Stop"
+    echo "################################################################"
+    tput sgr0
+    echo
 EOF
-
+chown $username /home/$username/after-reboot.sh
 
 # Finishing up.
 info_print "Done, you may now wish to reboot (further changes can be done by chrooting into /mnt)."
-exit
