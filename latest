@@ -672,17 +672,17 @@ arch-chroot /mnt sed -i "s/$FIND/$REPLACE/g" /root/linux-xanmod-tt/PKGBUILD
 
 FIND="_localmodcfg=n"
 REPLACE="_localmodcfg=y"
-arch-chroot /mnt sed -i "s/$FIND/$REPLACE/g" /root/linux-xanmod-ttPKGBUILD
+arch-chroot /mnt sed -i "s/$FIND/$REPLACE/g" /root/linux-xanmod-tt/PKGBUILD
 
+info_print "Installing Xanmod Kernel now"
 arch-chroot /mnt /bin/bash -e <<EOF
     cd /root/linux-xanmod-tt
-    su -c "makepkg -S" -s /bin/sh $username
+    su -c "makepkg -s" -s /bin/sh $username
     cd /root
     rm -r /root/linux-xanmod-tt
 EOF
 
 #makepkg -s --skippgpcheck
-
 
 
 info_print "Installing custom kernel headers"
