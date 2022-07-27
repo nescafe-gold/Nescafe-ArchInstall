@@ -158,6 +158,7 @@ userpass_selector() {
         return 0
     else
         username="${USER_NAME}"
+        userpass="${USER_PASSWORD}"
     fi
 }
 
@@ -600,9 +601,8 @@ arch-chroot /mnt useradd -m -G power,input,audio,wheel,storage,rfkill,network,vi
 
 echo "%wheel ALL=(ALL:ALL) ALL" > /mnt/etc/sudoers.d/wheel
 info_print "Adding the user $username to the system with root privilege."
-arch-chroot /mnt useradd -m -G wheel -s /bin/bash "$username"
 info_print "Setting user password for $username."
-echo "$username:$userpass" | arch-chroot /mnt chpasswd
+echo "$username:$userpass" | arch-chroot /mnt chpasswd 
 
 
 info_print "Set sudo timestamp_timeout default to 0 "
