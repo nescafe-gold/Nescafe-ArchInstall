@@ -647,20 +647,19 @@ EOF
 
 info_print "Enabling Audio power saving by making sound idle if inactive for 10 seconds"
 # Save power on laptop by making sound idle if it is inactive for a few seconds
-info_print "Save power on laptop by making sound idle if it is inactive for 10 seconds"
-snd_hda_intel=$(arch-chroot /mnt lspci -k | grep "snd_hda_intel" | grep "in use") 
-snd_ac97_codec=$(arch-chroot /mnt lspci -k | grep "snd_ac97_codec" | grep "in use")
+#snd_hda_intel=$(arch-chroot /mnt lspci -k | grep "snd_hda_intel" | grep "in use") 
+#snd_ac97_codec=$(arch-chroot /mnt lspci -k | grep "snd_ac97_codec" | grep "in use")
 
 
-if [ -z $snd_hda_intel ]
-then
-    arch-chroot /mnt echo "options snd_ac97_codec power_save=10" > /etc/modprobe.d/audio_powersave.conf
-fi
+#if [ -z $snd_hda_intel ]
+#then
+#    arch-chroot /mnt echo "options snd_ac97_codec power_save=10" > /etc/modprobe.d/audio_powersave.conf
+#fi
 
-if [ -z $snd_ac97_codec ]
-then
-    arch-chroot /mnt echo "options snd_hda_intel power_save=10" > /etc/modprobe.d/audio_powersave.conf
-fi
+#if [ -z $snd_ac97_codec ]
+#then
+#    arch-chroot /mnt echo "options snd_hda_intel power_save=10" > /etc/modprobe.d/audio_powersave.conf
+#fi
 
 # Since Linux 4.15 there is a new setting called med_power_with_dipm that matches the behaviour of Windows IRST driver settings and should not cause data loss with recent SSD/HDD drives. 
 
@@ -698,8 +697,9 @@ cat << EOF > /mnt/etc/xdg/reflector/reflector.conf
 --sort rate
 EOF
 
-info_print "Setting up reflector hook to autoupdate the mirrors after every pacman -S command"
-# Reflector hook
+info_print "Setting up reflector hook to autoupdate every time pacman-mirrorlist is updated"
+mkdir /mnt/etc/pacman.d/hooks
+touch /mnt/etc/pacman.d.hooks/mirrorupgrade.hook
 cat << EOF > /mnt/etc/pacman.d/hooks/mirrorupgrade.hook
 [Trigger]
 Operation = Upgrade
@@ -707,15 +707,13 @@ Type = Package
 Target = pacman-mirrorlist
 
 [Action]
-Description = Updating pacman-mirrorlist with reflector and removing pacnew...
+Description = Updating pacman-mirrorlist with reflector
 When = PostTransaction
 Depends = reflector
 Exec = /bin/sh -c 'systemctl start reflector.service'
 EOF
 
-
-
-
+info_print "Setting up reflector hook to run refind-install command everytime the refind package is updated"
 # Update rEFInd EFI on update
 cat << EOF > /etc/pacman.d/hooks/refind.hook
 [Trigger]
@@ -745,20 +743,8 @@ When = PostTransaction
 Exec = /usr/bin/install -Dm644 /dev/null /var/cache/zsh/pacman
 EOF
 
-#Reflector hook
-cat << EOF > /etc/pacman.d/hooks/mirrorupgrade.hook
-[Trigger]
-Operation = Upgrade
-Type = Package
-Target = pacman-mirrorlist
 
-[Action]
-Description = Updating pacman-mirrorlist with reflector and removing pacnew...
-When = PostTransaction
-Depends = reflector
-Exec = /bin/sh -c 'systemctl start reflector.service'
-EOF
-
+info_print "Configuring IO Scheduler"
 # Better IO Scheduler
 cat << EOF > /etc/udev/rules.d/60-ioschedulers.rules
 # set scheduler for NVMe
@@ -771,8 +757,7 @@ EOF
 
 
 
-info_print "Configuring /boot backup when pacman transactions are made."
-mkdir -p /mnt/etc/pacman.d/hooks
+info_print "Backup boot every time a file in /usr/lib/modules*/vmlinuz is updated by a package install, upgrade or removal"
 cat > /mnt/etc/pacman.d/hooks/50-bootbackup.hook <<EOF
 [Trigger]
 Operation = Upgrade
@@ -787,6 +772,7 @@ When = PostTransaction
 Exec = /usr/bin/rsync -a --delete /boot /.bootbackup
 EOF
 
+info_print "Generating Zram"
 # Create zram
 cat << EOF > /mnt/etc/systemd/zram-generator.conf
 # This file is part of the zram-generator project
@@ -811,7 +797,7 @@ zram-size = ram / 4
 
 EOF
 
-
+info_print "Configure chrony to update NTP servers, detect system time drift, and enable kernel synchronization of the real-time clock (RTC)"
 # Chrony
 cat <<EOF > /mnt/etc/chrony.conf
 # Use public NTP servers from the pool.ntp.org project.
@@ -833,13 +819,14 @@ rtcsync
 rtconutc
 EOF
 
-
+#haven't configured arptables yet. add it later and chmod 700 /etc/arptables
 sed -i 's/^umask.*/umask\ 077/' /mnt/etc/profile
-chmod 700 /mnt/etc/{iptables,arptables,nftables.conf} 
+chmod 700 /mnt/etc/{iptables,nftables.conf} 
 echo "auth optional pam_faildelay.so delay=4000000" >> /mnt/etc/pam.d/system-login
 echo "tcp_bbr" > /mnt/etc/modules-load.d/bbr.conf 
 echo "write-cache" > /mnt/etc/apparmor/parser.conf
 
+info_print "making sysctl performance tweaks"
 cat << EOF >/mnt/etc/sysctl.d/99-sysctl-performance-tweaks.conf
 # The swappiness sysctl parameter represents the kernel's preference (or avoidance) of swap space. Swappiness can have a value between 0 and 100, the default value is 60. 
 # A low value causes the kernel to avoid swapping, a higher value causes the kernel to try to use swap space. Using a low value on sufficient memory is known to improve responsiveness on many systems.
@@ -945,6 +932,7 @@ net.ipv4.conf.default.send_redirects = 0
 net.core.default_qdisc = fq_pie
 EOF
 
+info_print "Setting up sshguard"
 # SSHGuard
 cat << EOF > /mnt/etc/sshguard.conf
 # Full path to backend executable (required, no default)
@@ -969,6 +957,7 @@ IPV6_SUBNET=64
 IPV4_SUBNET=24
 EOF
 
+info_print "Setting up autologout"
 #Automatic logout
 cat << EOF > /mnt/etc/profile.d/shell-timeout.sh
 TMOUT="\$(( 60*30 ))";
