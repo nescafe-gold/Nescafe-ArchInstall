@@ -1083,53 +1083,55 @@ EOF
 sed -i 's/^selection_count.*/count = "inf"/' /mnt/etc/refind-btrfs.conf
 sed -i 's/^include_sub_menus.*/include_sub_menus = true/' /mnt/etc/refind-btrfs.conf
 
-cat << EOF >> /home/$username/init.sh
-sudo umount /.snapshots
-sudo rm -r /.snapshots
-sudo snapper -c root create-config /
-sudo mount -a
-sudo chmod 750 -R /.snapshots
-sudo chmod a+rx /.snapshots
-sudo chown :wheel /.snapshots
+info_print "Snapper configuration"
+arch-chroot /mnt /bin/bash -e <<EOF
+    su -c "sudo umount /.snapshots" $username
+    su -c "sudo rm -r /.snapshots" $username
+    su -c "sudo snapper -c root create-config /" $username
+    su -c "sudo mount -a" $username
+    su -c "sudo chmod 750 -R /.snapshots" $username
+    su -c "sudo chmod a+rx /.snapshots" $username
+    su -c "sudo chown :wheel /.snapshots" $username
 
 
-sudo snapper -c root create --description "Fresh Install"
-sudo sed -i 's/^TIMELINE_MIN_AGE.*/TIMELINE_MIN_AGE="1800"/' /etc/snapper/configs/root && \
-sudo sed -i 's/^TIMELINE_LIMIT_HOURLY.*/TIMELINE_LIMIT_HOURLY="0"/' /etc/snapper/configs/root && \
-sudo sed -i 's/^TIMELINE_LIMIT_DAILY.*/TIMELINE_LIMIT_DAILY="7"/' /etc/snapper/configs/root && \
-sudo sed -i 's/^TIMELINE_LIMIT_WEEKLY.*/TIMELINE_LIMIT_WEEKLY="0"/' /etc/snapper/configs/root && \
-sudo sed -i 's/^TIMELINE_LIMIT_MONTHLY.*/TIMELINE_LIMIT_MONTHLY="0"/' /etc/snapper/configs/root && \
-sudo sed -i 's/^TIMELINE_LIMIT_YEARLY.*/TIMELINE_LIMIT_YEARLY="0"/' /etc/snapper/configs/root
-
-
-sudo systemctl enable --now snapper-timeline.timer snapper-cleanup.timer
-sudo systemctl disable NetworkManager-wait-online
-sudo systemctl mask NetworkManager-wait-online
-sudo systemctl enable --now NetworkManager 
-sudo systemctl enable --now NetworkManager-dispatcher
-sudo systemctl enable --now nftables
-sudo systemctl enable --now sshd 
-# uncomment if chronyd NOT is installed
-#sudo systemctl disable --now systemd-timesyncd.service
-sudo systemctl enable --now chronyd
-sudo systemctl enable --now reflector
-sudo systemctl enable --now apparmor
-sudo systemctl enable --now sshguard
-sudo systemctl enable --now memavaild 
-sudo systemctl enable --now irqbalance 
-sudo systemctl enable --now prelockd 
-sudo systemctl enable --now systemd-swap 
-sudo systemctl enable --now nohang-desktop 
-sudo systemctl enable --now auto-cpufreq 
-sudo systemctl enable --now dbus-broker
-sudo systemctl enable --now refind-btrfs
-sudo systemctl enable --now greetd
-rm /home/$username/init.sh
+    su -c "sudo snapper -c root create --description "Fresh Install"" $username
+    su -c "sudo sed -i 's/^TIMELINE_MIN_AGE.*/TIMELINE_MIN_AGE="1800"/' /etc/snapper/configs/root" $username
+    su -c "sudo sed -i 's/^TIMELINE_LIMIT_HOURLY.*/TIMELINE_LIMIT_HOURLY="0"/' /etc/snapper/configs/root" $username
+    su -c "sudo sed -i 's/^TIMELINE_LIMIT_DAILY.*/TIMELINE_LIMIT_DAILY="7"/' /etc/snapper/configs/root" $username
+    su -c "sudo sed -i 's/^TIMELINE_LIMIT_WEEKLY.*/TIMELINE_LIMIT_WEEKLY="0"/' /etc/snapper/configs/root" $username
+    su -c "sudo sed -i 's/^TIMELINE_LIMIT_MONTHLY.*/TIMELINE_LIMIT_MONTHLY="0"/' /etc/snapper/configs/root" $username
+    su -c "sudo sed -i 's/^TIMELINE_LIMIT_YEARLY.*/TIMELINE_LIMIT_YEARLY="0"/' /etc/snapper/configs/root" $username
 EOF
-arch-chroot /mnt su -c "chown $username /home/$username/init.sh" $username
-arch-chroot /mnt chmod +x /home/$username/init.sh
 
-arch-chroot /mnt su -c "/home/$username/init.sh" $username
+
+arch-chroot /mnt /bin/bash -e <<EOF
+    su -c "sudo systemctl enable --now snapper-timeline.timer snapper-cleanup.timer" $username
+    su -c "sudo systemctl disable NetworkManager-wait-online" $username
+    su -c "sudo systemctl mask NetworkManager-wait-online" $username
+    su -c "sudo systemctl enable --now NetworkManager " $username
+    su -c "sudo systemctl enable --now NetworkManager-dispatcher" $username
+    su -c "sudo systemctl enable --now nftables" $username
+    su -c "sudo systemctl enable --now sshd" $username
+    
+    # uncomment if chronyd NOT is installed
+    #sudo systemctl disable --now systemd-timesyncd.service
+    
+    su -c "sudo systemctl enable --now chronyd" $username
+    su -c "sudo systemctl enable --now reflector" $username
+    su -c "sudo systemctl enable --now apparmor" $username
+    su -c "sudo systemctl enable --now sshguard" $username
+    su -c "sudo systemctl enable --now memavaild" $username
+    su -c "sudo systemctl enable --now irqbalance" $username
+    su -c "sudo systemctl enable --now prelockd" $username
+    su -c "sudo systemctl enable --now systemd-swap" $username
+    su -c "sudo systemctl enable --now nohang-desktop" $username
+    su -c "sudo systemctl enable --now auto-cpufreq " $username
+    su -c "sudo systemctl enable --now dbus-broker" $username
+    su -c "sudo systemctl enable --now refind-btrfs" $username
+    su -c "sudo systemctl enable --now greetd" $username
+
+EOF
+
 
 # Finishing up.
 info_print "Done, you may now wish to reboot (further changes can be done by chrooting into /mnt)."
