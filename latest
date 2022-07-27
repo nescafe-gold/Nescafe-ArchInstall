@@ -609,12 +609,18 @@ info_print "Set sudo timestamp_timeout default to 0 "
 arch-chroot /mnt echo "Defaults timestamp_timeout=0" >> /etc/sudoers
 
 info_print "Installing Paru"
-git clone https://aur.archlinux.org/paru.git /mnt/paru 
-arch-chroot /mnt $CURRENT_USER="$username" 
+
+arch-chroot /mnt /bin/bash -e <<EOF
+    git clone https://aur.archlinux.org/paru.git 
+    cd paru
+    su -c "makepkg -si" -s /bin/sh $CURENT_USER
+    cd /
+    rm -r/paru
+EOF
+
 
 arch-chroot /mnt 
 cd paru 
-su -c "makepkg -si" -s /bin/sh $CURENT_USER
 exit
 rm -r /mnt/paru
 
