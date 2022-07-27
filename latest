@@ -609,7 +609,7 @@ info_print "Set sudo timestamp_timeout default to 0 "
 arch-chroot /mnt echo "Defaults timestamp_timeout=0" >> /etc/sudoers
 
 info_print "setting rustup default build to stable"
-arch-chroot su -c "rustup default stable" -s /bin/sh $username
+arch-chroot /mnt su -c "rustup default stable" -s /bin/sh $username
 info_print "Installing Paru"
 
 arch-chroot /mnt /bin/bash -e <<EOF
