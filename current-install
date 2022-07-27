@@ -1,0 +1,1083 @@
+#!/usr/bin/env -S bash -e
+
+# Cleaning the TTY.
+clear
+
+# Cosmetics (colours for text).
+BOLD='\e[1m'
+BRED='\e[91m'
+BBLUE='\e[34m'  
+BGREEN='\e[92m'
+BYELLOW='\e[93m'
+RESET='\e[0m'
+
+###################  Variables ##################
+#All of these variables will prompt you for the info in the script if they are left blank with just speech marks like so: =""
+
+#### Locale information & Hostname
+KEYMAP="uk"
+LOCALE="en_GB.UTF-8"
+HOSTNAME="TEST-ARCH"
+TIMEZONE="Europe/London"
+NTP="TRUE"
+
+#### Disk Information
+# Disk to install btrfs on. This disk will be WIPED
+DISK="/dev/nvme0n1"
+EFI_LABEL="EFI"
+ENCRYPTED_BTRFS_VOLUMES_LABEL="CRYPTSYTEM"
+
+### Encryption Information
+ENCRYPTION_OPTIONS="--perf-no_read_workqueue --perf-no_write_workqueue --type luks2 --cipher aes-xts-plain64 --key-size 512 --iter-time 2000 --pbkdf argon2id --hash sha3-512"
+ENCRYPTION_PASSWORD="test_password"
+
+### User accounts
+USER_NAME="aidan"
+USER_PASSWORD="test"
+ROOT_PASSWORD="test"
+
+# Can be either true, True, TRUE or false, False, FALSE
+BLACKARCH="True"
+MULTILIB="True"
+
+
+
+# Pretty print (function).
+info_print () {
+    echo -e "${BOLD}${BGREEN}[ ${BYELLOW}•${BGREEN} ] $1${RESET}"
+}
+
+# Pretty print for input (function).
+input_print () {
+    echo -ne "${BOLD}${BYELLOW}[ ${BGREEN}•${BYELLOW} ] $1${RESET}"
+}
+
+# Alert user of bad input (function).
+error_print () {
+    echo -e "${BOLD}${BRED}[ ${BBLUE}•${BRED} ] $1${RESET}"
+}
+
+# Virtualization check (function).
+virt_check () {
+    hypervisor=$(systemd-detect-virt)
+    case $hypervisor in
+        kvm )       info_print "KVM has been detected, setting up guest tools."
+                    pacman qemu-guest-agent 
+                    systemctl enable qemu-guest-agent --root=/mnt 
+                    ;;
+        vmware )    info_print "VMWare Workstation/ESXi has been detected, setting up guest tools."
+                    pacman /mnt open-vm-tools
+                    systemctl enable vmtoolsd --root=/mnt 
+                    systemctl enable vmware-vmblock-fuse --root=/mnt  
+                    ;;
+        oracle )    info_print "VirtualBox has been detected, setting up guest tools."
+                    pacman /mnt virtualbox-guest-utils 
+                    systemctl enable vboxservice --root=/mnt 
+                    ;;
+        microsoft ) info_print "Hyper-V has been detected, setting up guest tools."
+                    pacman /mnt hyperv 
+                    systemctl enable hv_fcopy_daemon --root=/mnt 
+                    systemctl enable hv_kvp_daemon --root=/mnt 
+                    systemctl enable hv_vss_daemon --root=/mnt 
+                    ;;
+    esac
+}
+
+# Selecting a kernel to install (function).
+kernel_selector () {
+    info_print "List of kernels:"
+    info_print "1) Stable: Vanilla Linux kernel with a few specific Arch Linux patches applied"
+    info_print "2) Hardened: A security-focused Linux kernel"
+    info_print "3) Longterm: Long-term support (LTS) Linux kernel"
+    info_print "4) Zen Kernel: A Linux kernel optimized for desktop usage"
+    input_print "Please select the number of the corresponding kernel (e.g. 1): " 
+    read -r kernel_choice
+    case $kernel_choice in
+        1 ) kernel="linux"
+            return 0;;
+        2 ) kernel="linux-hardened"
+            return 0;;
+        3 ) kernel="linux-lts"
+            return 0;;
+        4 ) kernel="linux-zen"
+            return 0;;
+        * ) error_print "You did not enter a valid selection, please try again."
+            return 1
+    esac
+}
+
+# User enters a password for the LUKS Container (function).
+lukspass_selector () {
+    if [ -z "$ENCRYPTION_PASSWORD" ]
+    then
+        input_print "Please enter a password for the LUKS container (you're not going to see the password): "
+        read -r -s lukspass
+        if [[ -z "$lukspass" ]]; then
+            echo
+            error_print "You need to enter a password for the LUKS Container, please try again."
+            return 1
+        fi
+        echo
+        input_print "Please enter the password for the LUKS container again (you're not going to see the password): "
+        read -r -s lukspass2
+        echo
+        if [[ "$lukspass" != "$lukspass2" ]]; then
+            error_print "Passwords don't match, please try again."
+            return 1
+        fi
+        return 0
+    else
+        lukspass="${ENCRYPTION_PASSWORD}"
+    fi
+}
+
+userpass_selector() {
+    if [ -z "$USER_NAME" ]
+    then
+        input_print "Please enter name for a user account (enter empty to not create one): "
+        read -r username
+        if [[ -z "$username" ]]; then
+            return 0
+        fi
+        input_print "Please enter a password for $username (you're not going to see the password): "
+        read -r -s userpass
+        if [[ -z "$userpass" ]]; then
+            echo
+            error_print "You need to enter a password for $username, please try again."
+            return 1
+        fi
+        echo
+        input_print "Please enter the password again (you're not going to see it): " 
+        read -r -s userpass2
+        echo
+        if [[ "$userpass" != "$userpass2" ]]; then
+            echo
+            error_print "Passwords don't match, please try again."
+            return 1
+        fi
+        return 0
+    else
+        username="${USER_NAME}"
+        userpass="${USER_PASSWORD}"
+    fi
+}
+
+
+# Setting up a password for the root account (function).
+rootpass_selector () {
+    if [ -z "$ROOT_PASSWORD" ]
+    then
+        input_print "Please enter a password for the root user (you're not going to see it): "
+        read -r -s rootpass
+        if [[ -z "$rootpass" ]]; then
+            echo
+            error_print "You need to enter a password for the root user, please try again."
+            return 1
+        fi
+        echo
+        input_print "Please enter the password again (you're not going to see it): " 
+        read -r -s rootpass2
+        echo
+        if [[ "$rootpass" != "$rootpass2" ]]; then
+            error_print "Passwords don't match, please try again."
+            return 1
+        fi
+        return 0
+    else
+        rootpass="${ROOT_PASSWORD}"
+    fi
+}
+
+# Microcode detector (function).
+microcode_detector () {
+    CPU=$(grep vendor_id /proc/cpuinfo)
+    if [[ "$CPU" == *"AuthenticAMD"* ]]; then
+        info_print "An AMD CPU has been detected, the AMD microcode will be installed."
+        microcode="amd-ucode"
+    else
+        info_print "An Intel CPU has been detected, the Intel microcode will be installed."
+        microcode="intel-ucode"
+    fi
+}
+
+# User enters a hostname (function).
+hostname_selector () {
+    if [ -z "$HOSTNAME" ]
+    then
+        input_print "Please enter the hostname: "
+        read -r hostname
+        if [[ -z "$hostname" ]]; then
+            error_print "You need to enter a hostname in order to continue."
+            return 1
+        fi
+        return 0
+    else
+        hostname="${HOSTNAME}"
+    fi
+}
+
+# User chooses the locale (function).
+locale_selector () {
+    if [ -z "$LOCALE" ]
+    then
+    
+        input_print "Please insert the locale you use (format: xx_XX. Enter empty to use en_GB, or \"/\" to search locales): " locale
+        read -r locale
+        case "$locale" in
+            '') locale="en_GB.UTF-8"
+                info_print "$locale will be the default locale."
+                return 0;;
+            '/') sed -E '/^# +|^#$/d;s/^#| *$//g;s/ .*/ (Charset:&)/' /etc/locale.gen | less -M
+                    clear
+                    return 1;;
+            *)  if ! grep -q "^#\?$(sed 's/[].*[]/\\&/g' <<< $locale) " /etc/locale.gen; then
+                    error_print "The specified locale doesn't exist or isn't supported."
+                    return 1
+                fi
+                return 0
+        esac
+    else
+        locale="${LOCALE}"   
+    fi
+}
+
+# User chooses the console keyboard layout (function).
+keyboard_selector () {
+    if [ -z "$KEYMAP" ]
+    then
+        input_print "Please insert the keyboard layout to use in console (enter empty to use US, or \"/\" to look up for keyboard layouts): "
+        read -r kblayout
+        case "$kblayout" in
+            '') kblayout="uk"
+                info_print "The standard UK keyboard layout will be used."
+                return 0;;
+            '/') localectl list-keymaps
+                 clear
+                 return 1;;
+            *) if ! localectl list-keymaps | grep -Fxq "$kblayout"; then
+                   error_print "The specified keymap doesn't exist."
+                   return 1
+               fi
+            info_print "Changing console layout to $kblayout."
+            loadkeys "$kblayout"
+            return 0
+        esac
+    else
+        kblayout="${KEYMAP}" 
+        loadkeys $kblayout
+    fi
+}
+
+disk_selector() {
+    if [ -z "$DISK" ]
+    then
+        info_print "Here is a list of all the devices detected on your system:"
+        lsblk -o NAME,TYPE,SIZE,FSAVAIL,MOUNTPOINT,FSTYPE,LABEL
+
+        info_print "Available disks for the installation:"
+        PS3="Please select the number of the corresponding disk (e.g. 1): "
+        select ENTRY in $(lsblk -dpnoNAME|grep -P "/dev/sd|nvme|vd");
+        do
+            DISK="$ENTRY"
+            info_print "Arch Linux will be installed on the following disk: $DISK"
+            break
+        done
+    else
+        info_print "Arch Linux will be installed on the following disk: $DISK"
+    fi
+
+}
+# Welcome screen.
+echo -ne "${BOLD}${BYELLOW}
+======================================================================
+███████╗ █████╗ ███████╗██╗   ██╗      █████╗ ██████╗  ██████╗██╗  ██╗
+██╔════╝██╔══██╗██╔════╝╚██╗ ██╔╝     ██╔══██╗██╔══██╗██╔════╝██║  ██║
+█████╗  ███████║███████╗ ╚████╔╝█████╗███████║██████╔╝██║     ███████║
+██╔══╝  ██╔══██║╚════██║  ╚██╔╝ ╚════╝██╔══██║██╔══██╗██║     ██╔══██║
+███████╗██║  ██║███████║   ██║        ██║  ██║██║  ██║╚██████╗██║  ██║
+╚══════╝╚═╝  ╚═╝╚══════╝   ╚═╝        ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝
+======================================================================
+${RESET}"
+info_print "Welcome to easy-arch, a script made in order to simplify the process of installing Arch Linux."
+
+# Function selects keyboard if the KEYMAP variable is empty & it loadkeys the current environment  
+until keyboard_selector; do : ; done   
+
+# Function chooses target for the installation if DISK variable is empty
+until disk_selector; do : ; done
+
+# If ENCRYPTION_PASSWORD variable is empty then ask for the encryption password
+until lukspass_selector; do : ; done
+
+# Setting up the kernel.
+until kernel_selector; do : ; done
+
+# If LOCALE is empty, then select locale and setup keyboard 
+until locale_selector; do : ; done
+
+# If HOSTNAME is empty, then select hostname
+until hostname_selector; do : ; done
+
+# If user chose to create a username and if the USER_PASSWORD variable is empty then prompt for a password
+until userpass_selector; do : ; done
+# If ROOT_PASSWORD is empty, then prompt for a password
+until rootpass_selector; do : ; done
+
+
+# Warn user about deletion of old partition scheme.
+input_print "This will delete the current partition table on $DISK once installation starts. Do you agree [y/N]?: "
+read -r disk_response
+if ! [[ "${disk_response,,}" =~ ^(yes|y)$ ]]; then
+    error_print "Quitting."
+    exit
+fi
+
+# If multilib not equal False 
+if [ -z "$MULTILIB" ]
+then
+    # Ask if you want to add multilib repositories
+    input_print "Do you want to add the Blackarch repos to your pacman config? [y/N]?: "
+    read -r disk_response
+    if ! [[ "${disk_response,,}" =~ ^(yes|y)$ ]]; then
+        continue
+    else
+        MULTILIB="True"
+    fi
+fi
+
+# Ask if you want to add Blackarch mirrors
+if [ -z "$BLACKARCH" ]
+then
+    input_print "Do you want to add the Blackarch repos to your pacman config? [y/N]?: "
+    read -r disk_response
+    if ! [[ "${disk_response,,}" =~ ^(yes|y)$ ]]; then
+        continue
+    else
+        BLACKARCH="True"
+    fi
+fi
+
+#################### Actual Install ###############
+info_print "Wiping $DISK."
+wipefs -af "$DISK" &>/dev/null 
+# Zap drive and clear the gpt partition & create a new one
+sgdisk -Zo "$DISK" &>/dev/null
+
+# Creating a new partition scheme.
+info_print "Creating the partitions on $DISK."
+
+sgdisk --new=1:0:+512MiB --typecode=1:ef00 --align-end --change-name=1:"${EFI_LABEL}" $DISK &>/dev/null
+sgdisk --new=2:0 --typecode=2:8300 --align-end --change-name=2:"${ENCRYPTED_BTRFS_VOLUMES_LABEL}" $DISK &>/dev/null 
+
+sgdisk -p $DISK 
+info_print "Parition Summary:"
+sgdisk -v $DISK &>/dev/null 
+
+
+EFI="/dev/disk/by-partlabel/${EFI_LABEL}"
+CRYPTSYSTEM="/dev/disk/by-partlabel/${ENCRYPTED_BTRFS_VOLUMES_LABEL}"
+BTRFS="/dev/mapper/${ENCRYPTED_BTRFS_VOLUMES_LABEL}"
+
+# Informing the Kernel of the changes.
+info_print "Informing the Kernel about the disk changes."
+partprobe "$DISK" &>/dev/null
+
+# Formatting the EFI as FAT32.
+info_print "Formatting the EFI Partition as FAT32." 
+#mkfs.fat -F32 -n EFI /dev/disk/by-partlabel/EFI
+mkfs.vfat -F32 -n "$EFI_LABEL" $EFI &>/dev/null 
+
+# Creating a LUKS Container for the root partition.
+info_print "Creating LUKS Container for the root partition."
+echo -n "$lukspass" | cryptsetup luksFormat $ENCRYPTION_OPTIONS $CRYPTSYSTEM -d -
+echo -n "$lukspass" | cryptsetup --allow-discards --perf-no_read_workqueue --perf-no_write_workqueue --persistent open $CRYPTSYSTEM $ENCRYPTED_BTRFS_VOLUMES_LABEL -d - 
+
+# Formatting the LUKS Container as BTRFS.
+info_print "Formatting the LUKS container as BTRFS."
+mkfs.btrfs -L "$ENCRYPTED_BTRFS_VOLUMES_LABEL" -f $BTRFS 
+
+# Mounting $BTRFS to /mnt
+info_print "Mounting $BTRFS to /mnt"
+mount $BTRFS /mnt
+
+info_print "Creating system BTRFS subvolumes"
+btrfs sub create /mnt/@
+btrfs sub create /mnt/@home
+btrfs sub create /mnt/@abs
+btrfs sub create /mnt/@tmp
+btrfs sub create /mnt/@srv
+btrfs sub create /mnt/@snapshots
+btrfs sub create /mnt/btrfs     
+btrfs sub create /mnt/@log
+btrfs sub create /mnt/@cache
+
+info_print "Creating extra subvolumes"
+# Extra subvolumes (not necessary)
+#mkdir -p /mnt/home/$username/{Documents,ProjectsNStuff}
+
+#btrfs sub create /mnt/home/$username/@Documents
+#btrfs sub create /mnt/home/$username/@ProjectsNStuff
+
+info_print "Unmounting /mnt"
+# Remember to umount
+umount /mnt
+
+# Mounting the newly created subvolumes.
+info_print "Mounting the system BTRFS subvolumes."
+
+# Mount options
+HDD_MOUNT_OPTIONS="noatime,compress-force=zstd,autodefrag"
+SSD_MOUNT_OPTIONS="$HDD_MOUNT_OPTIONS,space_cache=v2,ssd,commit=120,discard=async"
+
+MOUNT_OPTIONS=$SSD_MOUNT_OPTIONS
+STRICT_MOUNT_OPTIONS="noexec,nodev,nosuid,$MOUNT_OPTIONS"
+
+mount -o $MOUNT_OPTIONS,subvol=@ $BTRFS /mnt 
+
+mkdir -p /mnt/{boot,home,var/cache,var/log,.snapshots,btrfs,var/tmp,var/abs,srv}
+
+mount -o $MOUNT_OPTIONS,subvol=@home $BTRFS /mnt/home
+mount -o $MOUNT_OPTIONS,subvol=@srv $BTRFS /mnt/srv
+
+strict_mount_targets="cache log abs tmp"
+for target in $(echo $strict_mount_targets)
+    do mount $BTRFS -o $STRICT_MOUNT_OPTIONS,subvol=@$target /mnt/var/$target
+done
+
+mount -o $MOUNT_OPTIONS,subvol=@snapshots $BTRFS /mnt/.snapshots
+mount -o $MOUNT_OPTIONS,subvolid=5 $BTRFS /mnt/btrfs
+
+
+info_print "Mounting the extra BTRFS subvolumes."
+# Extra subvolumes
+#mkdir -p /mnt/home/$username/{Documents,ProjectsNStuff}
+
+#mount $BTRFS -o $MOUNT_OPTIONS,subvol=home/${username}/@Documents /mnt/home/${username}/Documents
+#mount $BTRFS -o $MOUNT_OPTIONS,subvol=home/${username}/@ProjectsNStuff /mnt/home/${username}/ProjectsNStuff
+
+
+# Recommended to Disable COW for VM's or databases. Disabling /var/log
+#chattr +C /mnt/var/log
+
+mount -o nodev,nosuid,noexec $EFI /mnt/boot
+
+# Checking the microcode to install.
+info_print "Detecting whether you have Intel or AMD CPU to install the necessary packages later"
+microcode_detector
+
+# Pacman eye-candy features.
+info_print "Enabling colours, animations, and parallel downloads for pacman."
+sed -i 's/#UseSyslog/UseSyslog/' /etc/pacman.conf 
+sed -i 's/#Color/Color\\\nILoveCandy/' /etc/pacman.conf 
+sed -i 's/Color\\/Color/' /etc/pacman.conf 
+sed -i 's/#TotalDownload/TotalDownload/' /etc/pacman.conf 
+sed -i 's/#CheckSpace/CheckSpace/' /etc/pacman.conf
+sed -i "s/^#ParallelDownloads = 5$/ParallelDownloads = 6/" /etc/pacman.conf
+
+# Use all cores for compilation.
+info_print "Configure makepkg.conf to compile packages with all CPU cores"
+sed -i "s/-j2/-j$(nproc)/;/^#MAKEFLAGS/s/^#//" /etc/makepkg.conf
+
+info_print "Updating pacman mirrors"
+# Update Mirrors
+pacman -Syy reflector --needed --noconfirm 
+reflector --age 12 --latest 10 --sort rate --protocol https --save /etc/pacman.d/mirrorlist 
+
+info_print "syncing repositories and downloading keyring"
+pacman -Syy archlinux-keyring --noconfirm 
+# Pacstrap (setting up a base system onto the new root).
+info_print "Installing the base system (it may take a while)."
+pacstrap /mnt base base-devel "$kernel" "$microcode" linux-firmware "$kernel"-headers btrfs-progs rsync snapper reflector snap-pac zram-generator git zsh gptfdisk booster zstd iwd networkmanager mesa vulkan-intel libva-mesa-driver openssh mesa-vdpau libvirt refind rustup zsh sshguard neovim nano rust-analyzer xdg-user-dirs zram-generator pigz pbzip2 a52dec faac iptables-nft git faad2 flac jasper grim libmad libmpeg2 libtheora libvorbis compsize nftables wavpack xvidcore libde265 polkit-gnome mako slurp libxv noto-fonts btrfs-progs udiskie imv mpv lrzip unrar zip powertop x264 lzip apparmor lz4 wireplumber lzop p7zip noto-fonts-emoji ttf-font-awesome libva-utils man-db chrony dbus-broker lame blueman irqbalance pipewire{,-pulse,-jack,-alsa} --noconfirm
+
+#archlinux-keyring
+
+# Generating /etc/fstab.
+info_print "Generating a new fstab."
+genfstab -L -p /mnt >> /mnt/etc/fstab
+
+
+info_print "optimizing your makepkg conf"
+# Optimize Makepkg
+arch-chroot /mnt sed -i 's/^CXXFLAGS.*/CXXFLAGS="-march=native -mtune=native -O2 -pipe -fstack-protector-strong --param=ssp-buffer-size=4 -fno-plt"/' /etc/makepkg.conf 
+arch-chroot /mnt sed -i 's/^#RUSTFLAGS.*/RUSTFLAGS="-C opt-level=2 -C target-cpu=native"/' /etc/makepkg.conf
+arch-chroot /mnt sed -i 's/^#BUILDDIR.*/BUILDDIR=\/tmp\/makepkg/' /etc/makepkg.conf 
+arch-chroot /mnt sed -i 's/^#MAKEFLAGS.*/MAKEFLAGS="-j$(getconf _NPROCESSORS_ONLN) --quiet"/' /etc/makepkg.conf
+arch-chroot /mnt sed -i 's/^COMPRESSGZ.*/COMPRESSGZ=(pigz -c -f -n)/' /etc/makepkg.conf 
+arch-chroot /mnt sed -i 's/^COMPRESSBZ2.*/COMPRESSBZ2=(pbzip2 -c -f)/' /etc/makepkg.conf 
+arch-chroot /mnt sed -i 's/^COMPRESSXZ.*/COMPRESSXZ=(xz -T "$(getconf _NPROCESSORS_ONLN)" -c -z --best -)/' /etc/makepkg.conf 
+arch-chroot /mnt sed -i 's/^COMPRESSZST.*/COMPRESSZST=(zstd -c -z -q --ultra -T0 -22 -)/' /etc/makepkg.conf 
+arch-chroot /mnt sed -i 's/^COMPRESSLZ.*/COMPRESSLZ=(lzip -c -f)/' /etc/makepkg.conf 
+arch-chroot /mnt sed -i 's/^COMPRESSLRZ.*/COMPRESSLRZ=(lrzip -9 -q)/' /etc/makepkg.conf
+arch-chroot /mnt sed -i 's/^COMPRESSLZO.*/COMPRESSLZO=(lzop -q --best)/' /etc/makepkg.conf
+arch-chroot /mnt sed -i 's/^COMPRESSZ.*/COMPRESSZ=(compress -c -f)/' /etc/makepkg.conf
+arch-chroot /mnt sed -i 's/^COMPRESSLZ4.*/COMPRESSLZ4=(lz4 -q --best)/' /etc/makepkg.conf
+# Use all cores for compilation.
+info_print "Configure makepkg.conf to compile packages with all CPU cores"
+arch-chroot /mnt sed -i "s/-j2/-j$(nproc)/;/^#MAKEFLAGS/s/^#//" /etc/makepkg.conf
+
+info_print "Customizing pacman config" 
+# Pacman
+arch-chroot /mnt sed -i 's/#UseSyslog/UseSyslog/' /etc/pacman.conf 
+arch-chroot /mnt sed -i 's/#Color/Color\\\nILoveCandy/' /etc/pacman.conf 
+arch-chroot /mnt sed -i 's/Color\\/Color/' /etc/pacman.conf 
+arch-chroot /mnt sed -i 's/#CheckSpace/CheckSpace/' /etc/pacman.conf
+arch-chroot /mnt sed -i "s/^#ParallelDownloads = 5$/ParallelDownloads = 6/" /etc/pacman.conf
+
+info_print "Adding Multilib repository to pacman config"
+if [[ $MULTILIB = "TRUE" || $MULTILIB = "True" || $MULTILIB = "true" ]]
+then
+    arch-chroot /mnt sed -i "/\[multilib\]/,/Include/"'s/^#//' /etc/pacman.conf
+fi
+
+info_print "Adding Blackarch repository to pacman config"
+if [[ $BLACKARCH = "TRUE" || $BLACKARCH = "True" || $BLACKARCH = "true" ]]
+then
+    curl https://blackarch.org/strap.sh --output /mnt/blackarch_strap.sh
+    chmod +x /mnt/blackarch_strap.sh
+    arch-chroot /mnt ./blackarch_strap.sh
+    rm /mnt/blackarch_strap.sh
+fi
+
+info_print "Updating pacman mirrors"
+# Update Mirrors
+arch-chroot /mnt reflector --age 12 --latest 10 --sort rate --protocol https --save /etc/pacman.d/mirrorlist 
+
+# Configuring /etc/mkinitcpio.conf.
+#info_print "Configuring /etc/mkinitcpio.conf."
+#arch-chroot /mnt sed -i 's/^HOOKS.*/HOOKS=(base systemd udev autodetect keyboard keymap modconf block sd-encrypt resume filesystems fsck)/' /etc/mkinitcpio.conf
+#arch-chroot /mnt sed -i 's/BINARIES=()/BINARIES=("\/usr\/bin\/btrfs")/' /etc/mkinitcpio.conf
+#arch-chroot /mnt sed -i 's/MODULES=()/MODULES=(i915 btrfs)/' /etc/mkinitcpio.conf && \
+#arch-chroot /mnt sed -i 's/#COMPRESSION="lz4"/COMPRESSION="lz4"/' /etc/mkinitcpio.conf && \
+#arch-chroot /mnt sed -i 's/#COMPRESSION_OPTIONS=()/COMPRESSION_OPTIONS=(-9)/' /etc/mkinitcpio.conf && \
+
+# if you have more than 1 btrfs drive
+#sed -i 's/^HOOKS.*/HOOKS=(base systemd udev autodetect keyboard keymap modconf block sd-encrypt resume btrfs filesystems fsck)/' /etc/mkinitcpio.conf
+
+
+# Setting up LUKS2 encryption in grub.
+#info_print "Setting up grub config."
+#UUID=$(blkid -s UUID -o value $CRYPTSYSTEM)
+#sed -i "\,^GRUB_CMDLINE_LINUX=\"\",s,\",&rd.luks.name=$UUID=$CRYPTSYSTEM root=$BTRFS," /mnt/etc/default/grub
+
+
+### Configure the system
+# Configure selected locale and console keymap
+info_print "Configure locales & keymap"
+arch-chroot /mnt sed -i "/^#$locale/s/^#//" /etc/locale.gen
+arch-chroot /mnt echo "LANG=$locale" > /etc/locale.conf
+arch-chroot /mnt echo "$kblayout" > /etc/vconsole.conf
+
+# Setting up timezones
+info_print "Setting up timezone"
+arch-chroot /mnt ln -sf /usr/share/zoneinfo/${TIMEZONE}
+
+arch-chroot /mnt timedatectl set-ntp true
+
+# Generate locales
+info_print "Generating locales"
+arch-chroot /mnt locale-gen
+
+# Setting up clock
+info_print "Setting up system clock"
+arch-chroot /mnt hwclock --systohc
+
+# Setting up the hostname.
+info_print "Configure Hostname"
+arch-chroot /mnt echo "$hostname" > /etc/hostname
+
+# Setting up hosts file.
+info_print "Setting up hosts file at /etc/hosts"
+arch-chroot /mnt echo -e "\n127.0.0.1\tlocalhost\n::1\t\tlocalhost\n127.0.1.1\t${hostname}.localdomain\t$hostname" >> /etc/hosts
+
+# Setting root password.
+info_print "Setting root password."
+echo "root:$rootpass" | arch-chroot /mnt chpasswd
+
+# Setting user password.
+info_print "Adding the user $username to the system"
+arch-chroot /mnt groupadd adbusers 
+arch-chroot /mnt groupadd wireshark 
+arch-chroot /mnt useradd -m -G power,input,audio,wheel,storage,rfkill,network,video,scanner,adbusers,wireshark -s /usr/bin/zsh "$username"
+
+#echo "%wheel ALL=(ALL:ALL) ALL" > /mnt/etc/sudoers.d/wheel
+info_print "Adding the user $username to the system with root privilege."
+info_print "Setting user password for $username."
+echo "$username:$userpass" | arch-chroot /mnt chpasswd 
+
+# Make user not require a password to automate paru commands and other user commands
+info_print "Make user not require a password to automate paru commands and other user commands"
+echo "$username ALL=(ALL) NOPASSWD: ALL" >> /mnt/etc/sudoers
+
+info_print "Set sudo timestamp_timeout default to 0 "
+arch-chroot /mnt echo "Defaults timestamp_timeout=0" >> /etc/sudoers
+
+info_print "setting rustup default build to stable"
+arch-chroot /mnt su -c "rustup default stable" -s /bin/sh $username
+info_print "Installing Paru"
+
+arch-chroot /mnt /bin/bash -e <<EOF
+    git clone https://aur.archlinux.org/paru.git /home/$username/paru
+    chown $username /home/$username/paru
+    cd /home/$username/paru
+    su -c "makepkg -si --noconfirm" -s /bin/sh $username
+    cd /home/$username/paru
+    rm -r /home/$username/paru
+EOF
+
+info_print "Enabling BottomUp setting in paru config"
+arch-chroot /mnt sed -i "s/^#BottomUp$/BottomUp/" /etc/paru.conf
+
+# Virtualization check.
+
+info_print "Instaling more packages"
+arch-chroot /mnt su -c "paru --noremovemake  --batchinstall --noconfirm -S firefox firefox-extension-https-everywhere entr dbus-broker wireplumber firefox-ublock-origin irqbalance compsize haveged profile-sync-daemon lzip sbsigntools lrzip powertop p7zip lzop lame unarj firefox-dark-reader firefox-decentraleyes libva-utils apparmor arj cpio lha xarchiver slurp grim udiskie libsecret jasper tlp faad2 hyperfine ripgrep sshguard kanshi chrony pbzip2 pigz tokei bc refind-btrfs memavaild prelockd nohang-git just " $username 
+
+
+info_print "installing cpu-autofreq"
+# Add auto-cpu-freq
+arch-chroot /mnt /bin/bash -e <<EOF
+    git clone https://github.com/AdnanHodzic/auto-cpufreq.git /home/$username/auto-cpufreq
+    chown $username /home/$username/auto-cpufreq
+    cd /home/$username/auto-cpufreq
+    su -c "./auto-cpufreq-installer" -s /bin/sh $username
+    cd /home/$username/paru
+    rm -r /home/$username/paru
+EOF
+
+
+info_print "Enabling Audio power saving by making sound idle if inactive for 10 seconds"
+# Save power on laptop by making sound idle if it is inactive for a few seconds
+info_print "Save power on laptop by making sound idle if it is inactive for 10 seconds"
+snd_hda_intel=$(lspci -k | grep "snd_hda_intel" | grep "in use") 
+snd_ac97_codec=$(lspci -k | grep "snd_ac97_codec" | grep "in use")
+
+if ! [ -z $snd_hda_intel ]
+then
+    arch-chroot /mnt echo "options snd_hda_intel power_save=10" > /etc/modprobe.d/audio_powersave.conf
+fi
+
+if ! [ -z $snd_ac97_codec ]
+then
+    arch-chroot /mnt echo "options snd_ac97_codec power_save=10" > /etc/modprobe.d/audio_powersave.conf
+fi
+
+# Since Linux 4.15 there is a new setting called med_power_with_dipm that matches the behaviour of Windows IRST driver settings and should not cause data loss with recent SSD/HDD drives. 
+
+info_print "Enable disk power saving mode. power saving can be significant, ranging from 1.0 to 1.5 Watts (when idle)."
+arch-chroot /mnt echo 'ACTION=="add", SUBSYSTEM=="scsi_host", KERNEL=="host*", ATTR{link_power_management_policy}="med_power_with_dipm"' > /etc/udev/rules.d/hd_power_save.rules
+
+# Prevent snapshot slowdowns
+info_print "prevent snapshot slowdown by excluding /etc/updatedb.conf from COW"
+arch-chroot /mnt echo 'PRUNENAMES = ".snapshots"' >> /etc/updatedb.conf
+
+# Most important command! Get rid of the beep!
+info_print "Disable speaker beep sound when using autocomplete"
+arch-chroot /mnt rmmod pcspkr
+arch-chroot /mnt echo "blacklist pcspkr" > /etc/modprobe.d/nobeep.conf
+
+
+info_print "Setting up reflector config file"
+cat << EOF > /mnt/etc/xdg/reflector/reflector.conf
+# Set the output path where the mirrorlist will be saved (--save).
+--save /etc/pacman.d/mirrorlist
+
+# Select the transfer protocol and IP-versions when syncing mirrorlist.
+--protocol https
+--ipv6
+--ipv4
+
+# Use only these countries when using the mirror list
+--country GB,DE 
+
+# Use only the  most recently synchronized mirrors (--latest).
+--latest 10
+--age 12
+
+# Sort the mirrors by MirrorStatus score
+--sort rate
+EOF
+
+info_print "Setting up reflector hook to autoupdate the mirrors after every pacman -S command"
+# Reflector hook
+cat << EOF > /mnt/etc/pacman.d/hooks/mirrorupgrade.hook
+[Trigger]
+Operation = Upgrade
+Type = Package
+Target = pacman-mirrorlist
+
+[Action]
+Description = Updating pacman-mirrorlist with reflector and removing pacnew...
+When = PostTransaction
+Depends = reflector
+Exec = /bin/sh -c 'systemctl start reflector.service'
+EOF
+
+
+
+
+# Update rEFInd EFI on update
+cat << EOF > /etc/pacman.d/hooks/refind.hook
+[Trigger]
+Operation=Upgrade
+Type=Package
+Target=refind
+
+[Action]
+Description = Updating rEFInd on ESP
+When=PostTransaction
+Exec=/usr/bin/refind-install
+EOF
+
+#Zsh hook
+#What this does is refresh the known programs if you install new programs.
+
+cat << EOF > /etc/pacman.d/hooks/zsh.hook
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Operation = Remove
+Type = Path
+Target = usr/bin/*
+[Action]
+Depends = zsh
+When = PostTransaction
+Exec = /usr/bin/install -Dm644 /dev/null /var/cache/zsh/pacman
+EOF
+
+#Reflector hook
+cat << EOF > /etc/pacman.d/hooks/mirrorupgrade.hook
+[Trigger]
+Operation = Upgrade
+Type = Package
+Target = pacman-mirrorlist
+
+[Action]
+Description = Updating pacman-mirrorlist with reflector and removing pacnew...
+When = PostTransaction
+Depends = reflector
+Exec = /bin/sh -c 'systemctl start reflector.service'
+EOF
+
+# Better IO Scheduler
+cat << EOF > /etc/udev/rules.d/60-ioschedulers.rules
+# set scheduler for NVMe
+ACTION=="add|change", KERNEL=="nvme[0-9]*", ATTR{queue/scheduler}="none"
+# set scheduler for SSD and eMMC
+ACTION=="add|change", KERNEL=="sd[a-z]|mmcblk[0-9]*", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="mq-deadline"
+# set scheduler for rotating disks
+ACTION=="add|change", KERNEL=="sd[a-z]", ATTR{queue/rotational}=="1", ATTR{queue/scheduler}="bfq"
+EOF
+
+
+
+info_print "Configuring /boot backup when pacman transactions are made."
+mkdir -p /mnt/etc/pacman.d/hooks
+cat > /mnt/etc/pacman.d/hooks/50-bootbackup.hook <<EOF
+[Trigger]
+Operation = Upgrade
+Operation = Install
+Operation = Remove
+Type = Path
+Target = usr/lib/modules/*/vmlinuz
+[Action]
+Depends = rsync
+Description = Backing up /boot...
+When = PostTransaction
+Exec = /usr/bin/rsync -a --delete /boot /.bootbackup
+EOF
+
+# Create zram
+cat << EOF > /mnt/etc/systemd/zram-generator.conf
+# This file is part of the zram-generator project
+# https://github.com/systemd/zram-generator
+
+# Edit the values as appropriate
+
+# This section describes the settings for /dev/zram0.
+[zram0]
+
+# The size of the zram device, as a function of MemTotal, both in MB.
+# For example, if the machine has 1 GiB, and zram-size=ram/4,
+# then the zram device will have 256 MiB.
+# Fractions in the range 0.1–0.5 are recommended.
+#
+# The default is "min(ram / 2, 4096)".
+zram-size = ram / 4
+
+# The compression algorithm to use for the zram device,
+# or leave unspecified to keep the kernel default.
+# compression-algorithm = lzo-rle
+
+EOF
+
+
+# Chrony
+cat <<EOF > /mnt/etc/chrony.conf
+# Use public NTP servers from the pool.ntp.org project.
+server 0.pool.ntp.org offline
+server 1.pool.ntp.org offline
+server 2.pool.ntp.org offline
+server 3.pool.ntp.org offline
+
+# Record the rate at which the system clock gains/losses time.
+driftfile /etc/chrony.drift
+
+# In first three updates step the system clock instead of slew
+# if the adjustment is larger than 1 second.
+makestep 1.0 3
+
+# Enable kernel synchronization of the real-time clock (RTC).
+rtcsync
+
+rtconutc
+EOF
+
+
+sed -i 's/^umask.*/umask\ 077/' /mnt/etc/profile
+chmod 700 /mnt/etc/{iptables,arptables,nftables.conf} 
+echo "auth optional pam_faildelay.so delay=4000000" >> /mnt/etc/pam.d/system-login
+echo "tcp_bbr" > /mnt/etc/modules-load.d/bbr.conf 
+echo "write-cache" > /mnt/etc/apparmor/parser.conf
+
+cat << EOF >/mnt/etc/sysctl.d/99-sysctl-performance-tweaks.conf
+# The swappiness sysctl parameter represents the kernel's preference (or avoidance) of swap space. Swappiness can have a value between 0 and 100, the default value is 60. 
+# A low value causes the kernel to avoid swapping, a higher value causes the kernel to try to use swap space. Using a low value on sufficient memory is known to improve responsiveness on many systems.
+vm.swappiness=10
+
+# The value controls the tendency of the kernel to reclaim the memory which is used for caching of directory and inode objects (VFS cache). 
+# Lowering it from the default value of 100 makes the kernel less inclined to reclaim VFS cache (do not set it to 0, this may produce out-of-memory conditions)
+vm.vfs_cache_pressure=50
+
+# This action will speed up your boot and shutdown, because one less module is loaded. Additionally disabling watchdog timers increases performance and lowers power consumption
+# Disable NMI watchdog
+#kernel.nmi_watchdog = 0
+
+# Contains, as a percentage of total available memory that contains free pages and reclaimable
+# pages, the number of pages at which a process which is generating disk writes will itself start
+# writing out dirty data (Default is 20).
+vm.dirty_ratio = 5
+
+# Contains, as a percentage of total available memory that contains free pages and reclaimable
+# pages, the number of pages at which the background kernel flusher threads will start writing out
+# dirty data (Default is 10).
+vm.dirty_background_ratio = 5
+
+# This tunable is used to define when dirty data is old enough to be eligible for writeout by the
+# kernel flusher threads.  It is expressed in 100'ths of a second.  Data which has been dirty
+# in-memory for longer than this interval will be written out next time a flusher thread wakes up
+# (Default is 3000).
+#vm.dirty_expire_centisecs = 3000
+
+# The kernel flusher threads will periodically wake up and write old data out to disk.  This
+# tunable expresses the interval between those wakeups, in 100'ths of a second (Default is 500).
+vm.dirty_writeback_centisecs = 1500
+
+# Enable the sysctl setting kernel.unprivileged_userns_clone to allow normal users to run unprivileged containers.
+kernel.unprivileged_userns_clone=1
+
+# To hide any kernel messages from the console
+kernel.printk = 3 3 3 3
+
+# Restricting access to kernel logs
+kernel.dmesg_restrict = 1
+
+# Restricting access to kernel pointers in the proc filesystem
+kernel.kptr_restrict = 2
+
+# Disable Kexec, which allows replacing the current running kernel. 
+kernel.kexec_load_disabled = 1
+
+# Increasing the size of the receive queue.
+# The received frames will be stored in this queue after taking them from the ring buffer on the network card.
+# Increasing this value for high speed cards may help prevent losing packets: 
+net.core.netdev_max_backlog = 16384
+
+# Increase the maximum connections
+#The upper limit on how many connections the kernel will accept (default 128): 
+net.core.somaxconn = 8192
+
+# Increase the memory dedicated to the network interfaces
+# The default the Linux network stack is not configured for high speed large file transfer across WAN links (i.e. handle more network packets) and setting the correct values may save memory resources: 
+net.core.rmem_default = 1048576
+net.core.rmem_max = 16777216
+net.core.wmem_default = 1048576
+net.core.wmem_max = 16777216
+net.core.optmem_max = 65536
+net.ipv4.tcp_rmem = 4096 1048576 2097152
+net.ipv4.tcp_wmem = 4096 65536 16777216
+net.ipv4.udp_rmem_min = 8192
+net.ipv4.udp_wmem_min = 8192
+
+# Enable TCP Fast Open
+# TCP Fast Open is an extension to the transmission control protocol (TCP) that helps reduce network latency
+# by enabling data to be exchanged during the sender’s initial TCP SYN [3]. 
+# Using the value 3 instead of the default 1 allows TCP Fast Open for both incoming and outgoing connections: 
+net.ipv4.tcp_fastopen = 3
+
+# Enable BBR
+# The BBR congestion control algorithm can help achieve higher bandwidths and lower latencies for internet traffic
+net.core.default_qdisc = cake
+net.ipv4.tcp_congestion_control = bbr
+
+# TCP SYN cookie protection
+# Helps protect against SYN flood attacks. Only kicks in when net.ipv4.tcp_max_syn_backlog is reached: 
+net.ipv4.tcp_syncookies = 1
+
+# Protect against tcp time-wait assassination hazards, drop RST packets for sockets in the time-wait state. Not widely supported outside of Linux, but conforms to RFC: 
+net.ipv4.tcp_rfc1337 = 1
+
+# By enabling reverse path filtering, the kernel will do source validation of the packets received from all the interfaces on the machine. This can protect from attackers that are using IP spoofing methods to do harm. 
+net.ipv4.conf.default.rp_filter = 1
+net.ipv4.conf.all.rp_filter = 1
+
+# Disable ICMP redirects
+net.ipv4.conf.all.accept_redirects = 0
+net.ipv4.conf.default.accept_redirects = 0
+net.ipv4.conf.all.secure_redirects = 0
+net.ipv4.conf.default.secure_redirects = 0
+net.ipv6.conf.all.accept_redirects = 0
+net.ipv6.conf.default.accept_redirects = 0
+net.ipv4.conf.all.send_redirects = 0
+net.ipv4.conf.default.send_redirects = 0
+
+# To use the new FQ-PIE Queue Discipline (>= Linux 5.6) in systems with systemd (>= 217), will need to replace the default fq_codel. 
+net.core.default_qdisc = fq_pie
+EOF
+
+# SSHGuard
+cat << EOF > /mnt/etc/sshguard.conf
+# Full path to backend executable (required, no default)
+BACKEND="/usr/lib/sshguard/sshg-fw-nft-sets"
+
+# Log reader command (optional, no default)
+LOGREADER="LANG=C /usr/bin/journalctl -afb -p info -n1 -t sshd -t vsftpd -o cat"
+
+# How many problematic attempts trigger a block
+THRESHOLD=20
+# Blocks last at least 180 seconds
+BLOCK_TIME=180
+# The attackers are remembered for up to 3600 seconds
+DETECTION_TIME=3600
+
+# Blacklist threshold and file name
+BLACKLIST_FILE=100:/var/db/sshguard/blacklist.db
+
+# IPv6 subnet size to block. Defaults to a single address, CIDR notation. (optional, default to 128)
+IPV6_SUBNET=64
+# IPv4 subnet size to block. Defaults to a single address, CIDR notation. (optional, default to 32)
+IPV4_SUBNET=24
+EOF
+
+#Automatic logout
+cat << EOF > /mnt/etc/profile.d/shell-timeout.sh
+TMOUT="\$(( 60*30 ))";
+[ -z "\$DISPLAY" ] && export TMOUT;
+case \$( /usr/bin/tty ) in
+	/dev/tty[0-9]*) export TMOUT;;
+esac
+EOF
+
+
+info_print "Installing refind bootloader"
+arch-chroot /mnt su $username -c "sudo refind-install"
+
+info_print "Adding refind theme"
+#Add rEFInd theme
+mkdir -p /mnt/boot/EFI/refind/themes  
+git clone https://github.com/dheishman/refind-dreary.git /mnt/boot/EFI/refind/themes/refind-dreary-git 
+mv /mnt/boot/EFI/refind/themes/refind-dreary-git/highres /mnt/boot/EFI/refind/themes/refind-dreary 
+rm -dR /mnt/boot/EFI/refind/themes/refind-dreary-git
+
+info_print "Configure rEFInd"
+#Configure rEFInd
+sed -i 's/#resolution 3/resolution 1920 1080/' /mnt/boot/EFI/refind/refind.conf 
+sed -i 's/#use_graphics_for osx,linux/use_graphics_for linux/' /mnt/boot/EFI/refind/refind.conf 
+sed -i 's/#scanfor internal,external,optical,manual/scanfor manual,external/' /mnt/boot/EFI/refind/refind.conf
+sed -i 's/hideui.*/hideui singleuser,hints,arrows,badges/' /mnt/boot/EFI/refind/themes/refind-dreary/theme.conf
+
+info_print "Add rEFInd Manual Stanza"
+#Add rEFInd Manual Stanza (make sure ROOT_PARITION is set)
+cat << EOF >> /mnt/boot/EFI/refind/refind.conf
+
+menuentry "Arch Linux" {
+    icon     /EFI/refind/themes/refind-dreary/icons/os_arch.png
+    volume   "Arch Linux"
+    loader   /vmlinuz-linux-lts
+    initrd   /booster-linux-lts.img
+    options  "rd.luks.name=$(blkid $CRYPTSYSTEM | cut -d " " -f2 | cut -d '=' -f2 | sed 's/\"//g')=$(echo "$ENCRYPTED_BTRFS_VOLUMES_LABEL") root=$(echo "$BTRFS") rootflags=subvol=@ rw quiet nmi_watchdog=0 kernel.unprivileged_userns_clone=0 net.core.bpf_jit_harden=2 apparmor=1 lsm=lockdown,yama,apparmor systemd.unified_cgroup_hierarchy=1 add_efi_memmap initrd=\intel-ucode.img"
+    submenuentry "Boot - terminal" {
+        add_options "systemd.unit=multi-user.target"
+    }
+}
+
+menuentry "Arch Linux - Low Latency" {
+    icon     /EFI/refind/themes/refind-dreary/icons/os_arch.png
+    volume   "Arch Linux"
+    loader   /vmlinuz-linux-xanmod-tt
+    initrd   /booster-linux-xanmod-tt.img
+    options  "rd.luks.name=$(blkid $CRYPTSYSTEM | cut -d " " -f2 | cut -d '=' -f2 | sed 's/\"//g')=$(echo "$ENCRYPTED_BTRFS_VOLUMES_LABEL") root=$(echo "$BTRFS") rootflags=subvol=@ rw quiet nmi_watchdog=0 kernel.unprivileged_userns_clone=0 net.core.bpf_jit_harden=2 apparmor=1 lsm=lockdown,yama,apparmor systemd.unified_cgroup_hierarchy=1 add_efi_memmap initrd=\intel-ucode.img"
+    submenuentry "Boot - terminal" {
+        add_options "systemd.unit=multi-user.target"
+    }
+}
+
+include themes/refind-dreary/theme.conf
+EOF
+
+# Edit refind-btrfs
+sed -i 's/^selection_count.*/count = "inf"/' /mnt/etc/refind-btrfs.conf
+sed -i 's/^include_sub_menus.*/include_sub_menus = true/' /mnt/etc/refind-btrfs.conf
+
+info_print "Snapper configuration"
+arch-chroot /mnt /bin/bash -e <<EOF
+    su -c "sudo umount /.snapshots" $username
+    su -c "sudo rm -r /.snapshots" $username
+    su -c "sudo snapper -c root create-config /" $username
+    su -c "sudo mount -a" $username
+    su -c "sudo chmod 750 -R /.snapshots" $username
+    su -c "sudo chmod a+rx /.snapshots" $username
+    su -c "sudo chown :wheel /.snapshots" $username
+
+
+    su -c "sudo snapper -c root create --description "Fresh Install"" $username
+    su -c "sudo sed -i 's/^TIMELINE_MIN_AGE.*/TIMELINE_MIN_AGE="1800"/' /etc/snapper/configs/root" $username
+    su -c "sudo sed -i 's/^TIMELINE_LIMIT_HOURLY.*/TIMELINE_LIMIT_HOURLY="0"/' /etc/snapper/configs/root" $username
+    su -c "sudo sed -i 's/^TIMELINE_LIMIT_DAILY.*/TIMELINE_LIMIT_DAILY="7"/' /etc/snapper/configs/root" $username
+    su -c "sudo sed -i 's/^TIMELINE_LIMIT_WEEKLY.*/TIMELINE_LIMIT_WEEKLY="0"/' /etc/snapper/configs/root" $username
+    su -c "sudo sed -i 's/^TIMELINE_LIMIT_MONTHLY.*/TIMELINE_LIMIT_MONTHLY="0"/' /etc/snapper/configs/root" $username
+    su -c "sudo sed -i 's/^TIMELINE_LIMIT_YEARLY.*/TIMELINE_LIMIT_YEARLY="0"/' /etc/snapper/configs/root" $username
+EOF
+
+
+arch-chroot /mnt /bin/bash -e <<EOF
+    su -c "sudo systemctl enable --now snapper-timeline.timer snapper-cleanup.timer" $username
+    su -c "sudo systemctl disable NetworkManager-wait-online" $username
+    su -c "sudo systemctl mask NetworkManager-wait-online" $username
+    su -c "sudo systemctl enable --now NetworkManager " $username
+    su -c "sudo systemctl enable --now NetworkManager-dispatcher" $username
+    su -c "sudo systemctl enable --now nftables" $username
+    su -c "sudo systemctl enable --now sshd" $username
+    
+    # uncomment if chronyd NOT is installed
+    #sudo systemctl disable --now systemd-timesyncd.service
+    
+    su -c "sudo systemctl enable --now chronyd" $username
+    su -c "sudo systemctl enable --now reflector" $username
+    su -c "sudo systemctl enable --now apparmor" $username
+    su -c "sudo systemctl enable --now sshguard" $username
+    su -c "sudo systemctl enable --now memavaild" $username
+    su -c "sudo systemctl enable --now irqbalance" $username
+    su -c "sudo systemctl enable --now prelockd" $username
+    su -c "sudo systemctl enable --now systemd-swap" $username
+    su -c "sudo systemctl enable --now nohang-desktop" $username
+    su -c "sudo systemctl enable --now auto-cpufreq " $username
+    su -c "sudo systemctl enable --now dbus-broker" $username
+    su -c "sudo systemctl enable --now refind-btrfs" $username
+    su -c "sudo systemctl enable --now greetd" $username
+
+EOF
+
+
+# Finishing up.
+info_print "Done, you may now wish to reboot (further changes can be done by chrooting into /mnt)."
+exit
