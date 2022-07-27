@@ -652,9 +652,9 @@ arch-chroot /mnt chown $username /home/$username/linux-xanmod-tt
 
 
 info_print "Setting CPU Architecture for optimizations"
-FIND="_microarchitecture=0"
-REPLACE="_microarchitecture=38"
-arch-chroot /mnt sed -i "s/$FIND/$REPLACE/g" /home/$username/linux-xanmod-tt/PKGBUILD
+#FIND="_microarchitecture=0"
+#REPLACE="_microarchitecture=38"
+#arch-chroot /mnt sed -i "s/$FIND/$REPLACE/g" /home/$username/linux-xanmod-tt/PKGBUILD
 
 # FIND="use_numa=y"
 # REPLACE="use_numa=n"
@@ -685,7 +685,7 @@ sed -i "s+^#PKGDEST.*+PKGDEST=/home/$username/packages+" /mnt/etc/makepkg.conf
 
 arch-chroot /mnt /bin/bash -e <<EOF
     cd /home/$username/linux-xanmod-tt
-    su -c "makepkg -s" -s /bin/sh $username
+    su -c "makepkg -s --noconfirm --skippgpcheck" -s /bin/sh $username
     cd /home/$username
     rm -r /home/$username/linux-xanmod-tt
 EOF
