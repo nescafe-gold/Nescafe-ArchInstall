@@ -630,7 +630,7 @@ arch-chroot /mnt sed -i "s/^#BottomUp$/BottomUp/" /etc/paru.conf
 # Virtualization check.
 #info_print "Check if you are installing on a virtual machine. If you are then the you will get the option to choose which one. Then the necessary packages will will be installed later."
 #arch-chroot /mnt virt_check
-arch chroot /mnt su $username -c "sudo refind-install"
+arch-chroot /mnt su $username -c "sudo refind-install"
 
 
 info_print "Instaling more packages"
