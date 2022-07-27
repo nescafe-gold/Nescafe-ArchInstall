@@ -648,8 +648,8 @@ EOF
 info_print "Enabling Audio power saving by making sound idle if inactive for 10 seconds"
 # Save power on laptop by making sound idle if it is inactive for a few seconds
 info_print "Save power on laptop by making sound idle if it is inactive for 10 seconds"
-snd_hda_intel=$(lspci -k | grep "snd_hda_intel" | grep "in use") 
-snd_ac97_codec=$(lspci -k | grep "snd_ac97_codec" | grep "in use")
+snd_hda_intel=$(arch-chroot /mnt lspci -k | grep "snd_hda_intel" | grep "in use") 
+snd_ac97_codec=$(arch-chroot /mnt lspci -k | grep "snd_ac97_codec" | grep "in use")
 
 
 if [ -z $snd_hda_intel ]
