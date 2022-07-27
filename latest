@@ -677,7 +677,9 @@ arch-chroot /mnt sed -i "s/$FIND/$REPLACE/g" /root/linux-xanmod-tt/PKGBUILD
 info_print "Installing Xanmod Kernel now"
 arch-chroot /mnt /bin/bash -e <<EOF
     cd /root/linux-xanmod-tt
-    su -c "makepkg -s" -s /bin/sh $username
+    mkdir /home/$username/packages
+    sed -i "s+^#PKGDEST.*+/home/$username/packages+" /etc/makepkg.conf
+    su -c "makepkg -s" -S /bin/sh $username
     cd /root
     rm -r /root/linux-xanmod-tt
 EOF
