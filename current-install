@@ -651,14 +651,15 @@ info_print "Save power on laptop by making sound idle if it is inactive for 10 s
 snd_hda_intel=$(lspci -k | grep "snd_hda_intel" | grep "in use") 
 snd_ac97_codec=$(lspci -k | grep "snd_ac97_codec" | grep "in use")
 
-if ! [ -z $snd_hda_intel ]
-then
-    arch-chroot /mnt echo "options snd_hda_intel power_save=10" > /etc/modprobe.d/audio_powersave.conf
-fi
 
-if ! [ -z $snd_ac97_codec ]
+if [ -z $snd_hda_intel ]
 then
     arch-chroot /mnt echo "options snd_ac97_codec power_save=10" > /etc/modprobe.d/audio_powersave.conf
+fi
+
+if [ -z $snd_ac97_codec ]
+then
+    arch-chroot /mnt echo "options snd_hda_intel power_save=10" > /etc/modprobe.d/audio_powersave.conf
 fi
 
 # Since Linux 4.15 there is a new setting called med_power_with_dipm that matches the behaviour of Windows IRST driver settings and should not cause data loss with recent SSD/HDD drives. 
