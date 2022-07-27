@@ -604,6 +604,9 @@ info_print "Adding the user $username to the system with root privilege."
 info_print "Setting user password for $username."
 echo "$username:$userpass" | arch-chroot /mnt chpasswd 
 
+# Make user not require a password to automate paru commands and other user commands
+info_print "Make user not require a password to automate paru commands and other user commands"
+echo "$USER ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 info_print "Set sudo timestamp_timeout default to 0 "
 arch-chroot /mnt echo "Defaults timestamp_timeout=0" >> /etc/sudoers
