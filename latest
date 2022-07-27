@@ -487,7 +487,7 @@ info_print "syncing repositories and downloading keyring"
 pacman -Syy archlinux-keyring --noconfirm 
 # Pacstrap (setting up a base system onto the new root).
 info_print "Installing the base system (it may take a while)."
-pacstrap /mnt base base-devel "$kernel" "$microcode" linux-firmware "$kernel"-headers btrfs-progs rsync snapper reflector snap-pac zram-generator git zsh gptfdisk booster zstd iwd networkmanager mesa vulkan-intel libva-mesa-driver openssh mesa-vdpau libvirt refind rustup zsh sshguard neovim nano rust-analyzer xdg-user-dirs zram-generator pigz pbzip2 snapper a52dec faac iptables-nft git faad2 flac jasper grim libmad libmpeg2 libtheora libvorbis compsize nftables wavpack xvidcore libde265 polkit-gnome mako slurp libxv noto-fonts btrfs-progs udiskie imv mpv lrzip unrar zip powertop x264 lzip apparmor lz4 wireplumber lzop p7zip noto-fonts-emoji ttf-font-awesome libva-utils man-db chrony dbus-broker lame blueman irqbalance pipewire{,-pulse,-jack,-alsa} --noconfirm
+pacstrap /mnt base base-devel "$kernel" "$microcode" linux-firmware "$kernel"-headers btrfs-progs rsync snapper reflector snap-pac zram-generator git zsh gptfdisk booster zstd iwd networkmanager mesa vulkan-intel libva-mesa-driver openssh mesa-vdpau libvirt refind rustup zsh sshguard neovim nano rust-analyzer xdg-user-dirs zram-generator pigz pbzip2 a52dec faac iptables-nft git faad2 flac jasper grim libmad libmpeg2 libtheora libvorbis compsize nftables wavpack xvidcore libde265 polkit-gnome mako slurp libxv noto-fonts btrfs-progs udiskie imv mpv lrzip unrar zip powertop x264 lzip apparmor lz4 wireplumber lzop p7zip noto-fonts-emoji ttf-font-awesome libva-utils man-db chrony dbus-broker lame blueman irqbalance pipewire{,-pulse,-jack,-alsa} --noconfirm
 
 #archlinux-keyring
 
@@ -683,7 +683,7 @@ info_print "Installing custom kernel headers"
 arch-chroot /mnt su -c "paru --noremovemake --noconfirm -S linux-xanmod-tt-headers" $username
 
 info_print "Instaling more packages"
-arch-chroot /mnt su -c "paru --noremovemake  --batchinstall --noconfirm -S firefox firefox-extension-https-everywhere entr dbus-broker wireplumber firefox-ublock-origin irqbalance compsize haveged profile-sync-daemon lzip sbsigntools lrzip powertop p7zip lzop lame unarj firefox-dark-reader firefox-decentraleyes libva-utils apparmor arj cpio lha xarchiver slurp grim udiskie libsecret jasper tlp faad2 hyperfine ripgrep sshguard kanshi chrony snapper pbzip2 pigz tokei bc refind-btrfs memavaild prelockd nohang-git just " $username 
+arch-chroot /mnt su -c "paru --noremovemake  --batchinstall --noconfirm -S firefox firefox-extension-https-everywhere entr dbus-broker wireplumber firefox-ublock-origin irqbalance compsize haveged profile-sync-daemon lzip sbsigntools lrzip powertop p7zip lzop lame unarj firefox-dark-reader firefox-decentraleyes libva-utils apparmor arj cpio lha xarchiver slurp grim udiskie libsecret jasper tlp faad2 hyperfine ripgrep sshguard kanshi chrony pbzip2 pigz tokei bc refind-btrfs memavaild prelockd nohang-git just " $username 
 
 
 info_print "installing cpu-autofreq"
