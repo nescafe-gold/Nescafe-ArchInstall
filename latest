@@ -635,7 +635,7 @@ info_print "Refresh gpg keys so that packages from official repos and AUR have t
 arch-chroot /mnt pacman-key --refresh-keys
 
 info_print " Setting up modprobe before setting up xanmod kernel"
-arch-chroot /mnt pacman -S modprobed-db --noconfirm --needed
+arch-chroot /mnt su -c "paru -S modprobed-db --noconfirm --needed" $username
 arch-chroot /mnt su -c "modprobed-db" $username
 arch-chroot /mnt su -c "modprobed-db store" $username
 arch-chroot /mnt su -c "systemctl --user enable --now modprobed-db.service" $username
