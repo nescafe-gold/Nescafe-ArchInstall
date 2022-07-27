@@ -597,16 +597,14 @@ info_print "Adding the user $username to the system"
 arch-chroot /mnt groupadd adbusers 
 arch-chroot /mnt groupadd wireshark 
 arch-chroot /mnt useradd -m -G power,input,audio,wheel,storage,rfkill,network,video,scanner,adbusers,wireshark -s /usr/bin/zsh "$username"
-    
+
+echo "%wheel ALL=(ALL:ALL) ALL" > /mnt/etc/sudoers.d/wheel
 info_print "Adding the user $username to the system with root privilege."
-#arch-chroot /mnt useradd -m -G wheel -s /bin/bash "$username"
+arch-chroot /mnt useradd -m -G wheel -s /bin/bash "$username"
 info_print "Setting user password for $username."
 echo "$username:$userpass" | arch-chroot /mnt chpasswd
 
-#info_print "make user $username not need password for sudo commands temporarily (only for this install)"
-#arch-chroot /mnt sed -i '/^# %wheel ALL=(ALL) NOPASSWD: ALL/s/^# //' /etc/sudoers
 
-echo "%wheel ALL=(ALL:ALL) ALL" > /mnt/etc/sudoers.d/wheel
 info_print "Set sudo timestamp_timeout default to 0 "
 arch-chroot /mnt echo "Defaults timestamp_timeout=0" >> /etc/sudoers
 
