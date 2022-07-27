@@ -611,6 +611,7 @@ arch-chroot /mnt echo "Defaults timestamp_timeout=0" >> /etc/sudoers
 info_print "Installing Paru"
 
 arch-chroot /mnt /bin/bash -e <<EOF
+    rustup default stable
     git clone https://aur.archlinux.org/paru.git /home/$username/paru
     chown -R $username /home/$username/paru
     cd /home/$username/paru
