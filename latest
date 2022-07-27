@@ -648,13 +648,13 @@ arch-chroot /mnt modprobed-db store
 info_print "Installing custom kernel xanmod-tt for better btrfs optionsand anbox support, amongst other useful features. This will take a long time because it is compiling the kernel (which is a massive package) from source."
 arch-chroot /mnt /bin/bash -e <<EOF
     git clone https://aur.archlinux.org/linux-xanmod-tt.git /root/linux-xanmod-tt
-    cd /root/linux-xanmod-tt
+
 
     # My CPU is 7th gen kaby lake which isnt a custom cpu architecture for xanmod. IF your CPU architecture is there then edit this number to reflect your architecture
 
     FIND="_microarchitecture=0"
-    REPLACE="_microarchitecture=98"
-    sed -i "s/$FIND/$REPLACE/g" PKGBUILD
+    REPLACE="_microarchitecture=38"
+    sed -i "s/$FIND/$REPLACE/g" /root/linux-xanmod-tt/PKGBUILD
 
     # FIND="use_numa=y"
     # REPLACE="use_numa=n"
