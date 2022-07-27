@@ -632,9 +632,11 @@ arch-chroot /mnt sed -i "s/^#BottomUp$/BottomUp/" /etc/paru.conf
 #arch-chroot /mnt virt_check
 arch-chroot /mnt su $username -c "sudo refind-install"
 
+info_print "Refresh gpg keys so that packages from official repos and AUR have the latest gpg keys to verify the packages' authenticity"
+arch-chroot /mnt pacman-key --refresh-keys
 
 info_print "Instaling more packages"
-arch-chroot /mnt paru -S --noremovemake --nodiffmenu --batchinstall --editmenu --noconfirm -S linux-xanmod-tt linux-xanmod-tt-headers firefox-extension-https-everywhere entr dbus-broker wireplumber firefox-ublock-origin irqbalance compsize haveged profile-sync-daemon lzip sbsigntools lrzip powertop p7zip lzop lame unarj firefox-dark-reader firefox-decentraleyes libva-utils apparmor arj cpio lha xarchiver slurp grimudiskie libsecret jasper tlp faad2 hyperfine ripgrep sshguard kanshi chrony snapper pbzip2 pigz tokei bc refind refind-btrfs 
+arch-chroot /mnt su -c "paru --noremovemake  --batchinstall --noconfirm -S linux-xanmod-tt linux-xanmod-tt-headers firefox firefox-extension-https-everywhere entr dbus-broker wireplumber firefox-ublock-origin irqbalance compsize haveged profile-sync-daemon lzip sbsigntools lrzip powertop p7zip lzop lame unarj firefox-dark-reader firefox-decentraleyes libva-utils apparmor arj cpio lha xarchiver slurp grim udiskie libsecret jasper tlp faad2 hyperfine ripgrep sshguard kanshi chrony snapper pbzip2 pigz tokei bc refind refind-btrfs" $username 
 
 # Save power on laptop by making sound idle if it is inactive for a few seconds
 info_print "Save power on laptop by making sound id;e if it is inactive for 10 seconds"
