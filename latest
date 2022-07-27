@@ -630,7 +630,6 @@ arch-chroot /mnt sed -i "s/^#BottomUp$/BottomUp/" /etc/paru.conf
 # Virtualization check.
 #info_print "Check if you are installing on a virtual machine. If you are then the you will get the option to choose which one. Then the necessary packages will will be installed later."
 #arch-chroot /mnt virt_check
-arch-chroot /mnt su $username -c "sudo refind-install"
 
 info_print "Refresh gpg keys so that packages from official repos and AUR have the latest gpg keys to verify the packages' authenticity"
 arch-chroot /mnt pacman-key --refresh-keys
@@ -639,8 +638,24 @@ info_print "Installing custom kernel xanmod-tt for better btrfs optionsand anbox
 arch-chroot /mnt su -c "paru --noremovemake -S linux-xanmod-tt linux-xanmod-tt-headers" $username
 
 info_print "Instaling more packages"
-arch-chroot /mnt su -c "paru --noremovemake  --batchinstall --noconfirm -S firefox firefox-extension-https-everywhere entr dbus-broker wireplumber firefox-ublock-origin irqbalance compsize haveged profile-sync-daemon lzip sbsigntools lrzip powertop p7zip lzop lame unarj firefox-dark-reader firefox-decentraleyes libva-utils apparmor arj cpio lha xarchiver slurp grim udiskie libsecret jasper tlp faad2 hyperfine ripgrep sshguard kanshi chrony snapper pbzip2 pigz tokei bc refind refind-btrfs" $username 
+arch-chroot /mnt su -c "paru --noremovemake  --batchinstall --noconfirm -S firefox firefox-extension-https-everywhere entr dbus-broker wireplumber firefox-ublock-origin irqbalance compsize haveged profile-sync-daemon lzip sbsigntools lrzip powertop p7zip lzop lame unarj firefox-dark-reader firefox-decentraleyes libva-utils apparmor arj cpio lha xarchiver slurp grim udiskie libsecret jasper tlp faad2 hyperfine ripgrep sshguard kanshi chrony snapper pbzip2 pigz tokei bc refind-btrfs memavaild prelockd nohang-git just greetd greetd-gtkgreeter" $username 
 
+
+
+
+info_print "installing cpu-autofreq"
+# Add auto-cpu-freq
+arch-chroot /mnt /bin/bash -e <<EOF
+    git clone https://github.com/AdnanHodzic/auto-cpufreq.git /home/$username/auto-cpufreq
+    chown $username /home/$username/auto-cpufreq
+    cd /home/$username/auto-cpufreq
+    su -c "./auto-cpufreq-installer" -s /bin/sh $username
+    cd /home/$username/paru
+    rm -r /home/$username/paru
+EOF
+
+
+info_print "Enabling Audio power saving by making sound idle if inactive for 10 seconds"
 # Save power on laptop by making sound idle if it is inactive for a few seconds
 info_print "Save power on laptop by making sound idle if it is inactive for 10 seconds"
 snd_hda_intel=$(lspci -k | grep "snd_hda_intel" | grep "in use") 
@@ -670,8 +685,9 @@ info_print "Disable speaker beep sound when using autocomplete"
 arch-chroot /mnt rmmod pcspkr
 arch-chroot /mnt echo "blacklist pcspkr" > /etc/modprobe.d/nobeep.conf
 
+
 info_print "Setting up reflector config file"
-arch-chroot /mnt cat << EOF > /mnt/etc/xdg/reflector/reflector.conf
+cat << EOF > /mnt/etc/xdg/reflector/reflector.conf
 # Set the output path where the mirrorlist will be saved (--save).
 --save /etc/pacman.d/mirrorlist
 
@@ -705,6 +721,9 @@ When = PostTransaction
 Depends = reflector
 Exec = /bin/sh -c 'systemctl start reflector.service'
 EOF
+
+
+
 
 # Update rEFInd EFI on update
 cat << EOF > /etc/pacman.d/hooks/refind.hook
@@ -970,32 +989,25 @@ case \$( /usr/bin/tty ) in
 esac
 EOF
 
-arch-chroot /mnt refind-install
 
-rustup default stable 
+info_print "Installing refind bootloader"
+arch-chroot /mnt su $username -c "sudo refind-install"
 
-paru --noremovemake --noconfirm -S memavaild prelockd nohang-git refind-btrfs just greetd greetd-gtkgreeter
-paru --noremovemake --noconfirm -S linux-xanmod-tt linux-xanmod-tt-headers
-
-# Add auto-cpu-freq
-git clone https://github.com/AdnanHodzic/auto-cpufreq.git
-cd auto-cpufreq
-./auto-cpufreq-installer
-cd
-
+info_print "Adding refind theme"
 #Add rEFInd theme
 mkdir -p /mnt/boot/EFI/refind/themes  
 git clone https://github.com/dheishman/refind-dreary.git /mnt/boot/EFI/refind/themes/refind-dreary-git 
 mv /mnt/boot/EFI/refind/themes/refind-dreary-git/highres /mnt/boot/EFI/refind/themes/refind-dreary 
 rm -dR /mnt/boot/EFI/refind/themes/refind-dreary-git
 
-
+info_print "Configure rEFInd"
 #Configure rEFInd
 sed -i 's/#resolution 3/resolution 1920 1080/' /mnt/boot/EFI/refind/refind.conf 
 sed -i 's/#use_graphics_for osx,linux/use_graphics_for linux/' /mnt/boot/EFI/refind/refind.conf 
 sed -i 's/#scanfor internal,external,optical,manual/scanfor manual,external/' /mnt/boot/EFI/refind/refind.conf
 sed -i 's/hideui.*/hideui singleuser,hints,arrows,badges/' /mnt/boot/EFI/refind/themes/refind-dreary/theme.conf
 
+info_print "Add rEFInd Manual Stanza"
 #Add rEFInd Manual Stanza (make sure ROOT_PARITION is set)
 cat << EOF >> /mnt/boot/EFI/refind/refind.conf
 
