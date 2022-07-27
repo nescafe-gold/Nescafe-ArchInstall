@@ -639,9 +639,9 @@ arch-chroot /mnt /bin/bash -e <<EOF
     git clone https://github.com/AdnanHodzic/auto-cpufreq.git /home/$username/auto-cpufreq
     chown $username /home/$username/auto-cpufreq
     cd /home/$username/auto-cpufreq
-    su -c "sudo ./auto-cpufreq-installer" -s /bin/sh $username
-    cd /home/$username/paru
-    rm -r /home/$username/paru
+    su -c "echo I | sudo ./auto-cpufreq-installer" -s /bin/sh $username
+    cd /home/$username/auto-cpufreq
+    rm -r /home/$username/auto-cpufreq
 EOF
 
 
