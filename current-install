@@ -344,7 +344,7 @@ ask_enable_blackarch () {
 autocpu_selector () {
     if [ -z "$AUTOCPUFREQ" ]
     then
-        input_print "Do you want to download and enable auto-cpufreq? This is recommended if you have a laptop because it tunes your CPU frequency to improve the battery life (leaving blank will also select no)? [y/N]?: "
+      input_print "Do you want to download and enable auto-cpufreq? This is recommended if you have a laptop because it tunes your CPU frequency to improve the battery life (Any option other than yes or y will choose no)? [y/N]?: "
         read -r autocpufreq_response
         if ! [[ "${autocpufreq_response,,}" =~ ^(yes|y)$ ]]; then
             AUTOCPUFREQ="FALSE"
