@@ -183,7 +183,8 @@ rootpass_selector () {
     then
         input_print "Please enter a password for the root user (you're not going to see it): "
         read -r -s rootpass
-        if [[ -z "$rootpass" ]]; then
+        if [[ -z "$rootpass" ]]
+        then
             echo
             error_print "You need to enter a password for the root user, please try again."
             return 1
@@ -192,7 +193,8 @@ rootpass_selector () {
         input_print "Please enter the password again (you're not going to see it): " 
         read -r -s rootpass2
         echo
-        if [[ "$rootpass" != "$rootpass2" ]]; then
+        if [[ "$rootpass" != "$rootpass2" ]]
+        then
             error_print "Passwords don't match, please try again."
             return 1
         fi
@@ -1110,7 +1112,7 @@ menuentry "Arch Linux" {
     volume   "Arch Linux"
     loader   /vmlinuz-$kernel
     initrd   /booster-$kernel.img
-    options  "rd.luks.name=$(blkid $CRYPTSYSTEM | cut -d " " -f2 | cut -d '=' -f2 | sed 's/\"//g')=$ENCRYPTED_BTRFS_VOLUMES_LABEL root=$BTRFS rootflags=subvol=@ rw quiet nmi_watchdog=0 kernel.unprivileged_userns_clone=0 net.core.bpf_jit_harden=2 apparmor=1 lsm=lockdown,yama,apparmor systemd.unified_cgroup_hierarchy=1 add_efi_memmap initrd=\intel-ucode.img"
+    options  "rd.luks.name=$(blkid $CRYPTSYSTEM | cut -d " " -f2 | cut -d '=' -f2 | sed 's/\"//g')=$ENCRYPTED_BTRFS_VOLUMES_LABEL root=$BTRFS rootflags=subvol=@ rw quiet nmi_watchdog=0 kernel.unprivileged_userns_clone=0 net.core.bpf_jit_harden=2 apparmor=1 lsm=lockdown,yama,apparmor systemd.unified_cgroup_hierarchy=1 add_efi_memmap initrd=\$microcode.img"
     submenuentry "Boot - terminal" {
         add_options "systemd.unit=multi-user.target"
     }
@@ -1121,7 +1123,7 @@ menuentry "Arch Linux - Low Latency" {
     volume   "Arch Linux"
     loader   /vmlinuz-linux-xanmod-tt
     initrd   /booster-linux-xanmod-tt.img
-    options  "rd.luks.name=$(blkid $CRYPTSYSTEM | cut -d " " -f2 | cut -d '=' -f2 | sed 's/\"//g')=$ENCRYPTED_BTRFS_VOLUMES_LABEL root=$BTRFS rootflags=subvol=@ rw quiet nmi_watchdog=0 kernel.unprivileged_userns_clone=0 net.core.bpf_jit_harden=2 apparmor=1 lsm=lockdown,yama,apparmor systemd.unified_cgroup_hierarchy=1 add_efi_memmap initrd=\intel-ucode.img"
+    options  "rd.luks.name=$(blkid $CRYPTSYSTEM | cut -d " " -f2 | cut -d '=' -f2 | sed 's/\"//g')=$ENCRYPTED_BTRFS_VOLUMES_LABEL root=$BTRFS rootflags=subvol=@ rw quiet nmi_watchdog=0 kernel.unprivileged_userns_clone=0 net.core.bpf_jit_harden=2 apparmor=1 lsm=lockdown,yama,apparmor systemd.unified_cgroup_hierarchy=1 add_efi_memmap initrd=\$microcode.img"
     submenuentry "Boot - terminal" {
         add_options "systemd.unit=multi-user.target"
     }
