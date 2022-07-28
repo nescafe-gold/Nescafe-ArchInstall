@@ -43,6 +43,9 @@ ROOT_PASSWORD="test"
 ENABLE_BLACKARCH="TRUE"
 ENABLE_MULTILIB="TRUE"
 
+# Change this to true if you have a laptop. It will tune the clock speed of your CPU to improve battery life
+AUTOCPUFREQ=""
+
 # Pretty print (function).
 info_print () {
     echo -e "${BOLD}${BGREEN}[ ${BYELLOW}•${BGREEN} ] $1${RESET}"
@@ -320,10 +323,10 @@ ask_enable_multilib () {
 }
 
 ask_enable_blackarch () {
-# Ask if you want to add Blackarch mirrors
+# Ask if you want to add Blackarch mirrors. Leave blank for no
     if [ -z "$ENABLE_BLACKARCH" ]
     then
-        input_print "Do you want to add the Blackarch repos to your pacman config? [y/N]?: "
+        input_print "Do you want to add the Blackarch repos to your pacman config (leaving blank will also select no)? [y/N]?: "
         read -r disk_response
         if ! [[ "${disk_response,,}" =~ ^(yes|y)$ ]]; then
             continue
@@ -334,6 +337,20 @@ ask_enable_blackarch () {
         BLACKARCH="${ENABLE_BLACKARCH}"
     fi
 }
+
+autocpu_selector () {
+    if [ -z "$AUTOCPUFREQ" ]
+    then
+        input_print "Do you want to download and enable auto-cpufreq? This is recommended if you have a laptop because it tunes your CPU frequency to improve the battery life (leaving blank will also select no)? [y/N]?: "
+        read -r autocpufreq_response
+        if ! [[ "${autocpufreq_response,,}" =~ ^(yes|y)$ ]]; then
+            AUTOCPUFREQ="FALSE"
+        else
+            AUTOCPUFREQ="TRUE"
+        fi
+    fi
+}
+
 
 # Welcome screen.
 echo -ne "${BOLD}${BYELLOW}
@@ -643,18 +660,13 @@ arch-chroot /mnt su -c "paru --noremovemake --batchinstall --noconfirm -S firefo
 #info_print "Installing custom kernel. I will re-compile the kernel later, after boot "
 # arch-chroot /mnt su -c "paru --noremovemake --noconfirm --skippgpcheck -S linux-xanmod-tt linux-xanmod-tt-headers" $username
 
-
-info_print "installing cpu-autofreq"
-# Add auto-cpu-freq
-arch-chroot /mnt /bin/bash -e <<EOF
-    git clone https://github.com/AdnanHodzic/auto-cpufreq.git /home/$username/auto-cpufreq
-    chown $username /home/$username/auto-cpufreq
-    cd /home/$username/auto-cpufreq
-    su -c "echo I | sudo ./auto-cpufreq-installer" -s /bin/sh $username
-    cd /home/$username/
-    rm -r /home/$username/auto-cpufreq
-EOF
-
+if [[ $AUTOCPUFREQ = "TRUE" ]]
+then
+    info_print "installing cpu-autofreq"
+    git clone https://github.com/AdnanHodzic/auto-cpufreq.git /mnt/home/$username/auto-cpufreq
+    chown $username /mnt/home/$username/auto-cpufreq
+    arch-chroot /mnt su -c "cd /home/$username/auto-cpufreq; echo I | sudo ./auto-cpufreq-installer; cd /home/$username; rm -r /home/$username/auto-cpufreq" $username
+fi
 
 info_print "Enabling Audio power saving by making sound idle if inactive for 10 seconds"
 # Save power on laptop by making sound idle if it is inactive for a few seconds
