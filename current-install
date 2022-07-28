@@ -995,7 +995,7 @@ menuentry "Arch Linux" {
     volume   "Arch Linux"
     loader   /vmlinuz-$kernel
     initrd   /booster-$kernel.img
-    options  "rd.luks.name=$(blkid $CRYPTSYSTEM | cut -d " " -f2 | cut -d '=' -f2 | sed 's/\"//g')=$(echo "$ENCRYPTED_BTRFS_VOLUMES_LABEL") root=$(echo "$BTRFS") rootflags=subvol=@ rw quiet nmi_watchdog=0 kernel.unprivileged_userns_clone=0 net.core.bpf_jit_harden=2 apparmor=1 lsm=lockdown,yama,apparmor systemd.unified_cgroup_hierarchy=1 add_efi_memmap initrd=\intel-ucode.img"
+    options  "rd.luks.name=$(blkid $CRYPTSYSTEM | cut -d " " -f2 | cut -d '=' -f2 | sed 's/\"//g')=$ENCRYPTED_BTRFS_VOLUMES_LABEL root=$BTRFS rootflags=subvol=@ rw quiet nmi_watchdog=0 kernel.unprivileged_userns_clone=0 net.core.bpf_jit_harden=2 apparmor=1 lsm=lockdown,yama,apparmor systemd.unified_cgroup_hierarchy=1 add_efi_memmap initrd=\intel-ucode.img"
     submenuentry "Boot - terminal" {
         add_options "systemd.unit=multi-user.target"
     }
