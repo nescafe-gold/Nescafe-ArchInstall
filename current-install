@@ -1117,7 +1117,7 @@ echo "################################################################"
 tput sgr0
 echo
 EOF
-chown $username /mnt/home/$username/after-reboot.sh
+arch-chroot /mnt chown $username /mnt/home/$username/after-reboot.sh
 
 
 # Finishing up.
