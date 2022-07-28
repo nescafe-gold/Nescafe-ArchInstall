@@ -373,7 +373,7 @@ echo -ne "${BOLD}${BYELLOW}
  ██▒  ▒██   ██         ▓████▒  ██    ██          ██████   ██    ██  ░▓████▓     ░████    ▓███░██    ░████     ░████  
 ====================================================================================================================
 ${RESET}"
-info_print "Welcome to easy-arch, a script made in order to simplify the process of installing Arch Linux."
+info_print "Welcome to my Arch Linux install script"
 
 # Function selects keyboard if the KEYMAP variable is empty & it loadkeys the current environment  
 until keyboard_selector; do : ; done   
