@@ -632,6 +632,9 @@ arch-chroot /mnt sed -i "s/^#BottomUp$/BottomUp/" /etc/paru.conf
 info_print "Instaling more packages"
 arch-chroot /mnt su -c "paru --noremovemake  --batchinstall --noconfirm -S firefox firefox-extension-https-everywhere entr dbus-broker wireplumber firefox-ublock-origin irqbalance compsize haveged profile-sync-daemon lzip sbsigntools lrzip powertop p7zip lzop lame unarj firefox-dark-reader firefox-decentraleyes libva-utils apparmor arj cpio lha xarchiver slurp grim udiskie libsecret jasper tlp faad2 hyperfine ripgrep sshguard kanshi chrony pbzip2 pigz tokei bc refind-btrfs memavaild prelockd nohang-git just " $username 
 
+info_print "Installing custom kernel. I will re-compile the kernel later, after boot "
+paru --noremovemake -S linux-xanmod-tt linux-xanmod-tt-headers
+
 
 info_print "installing cpu-autofreq"
 # Add auto-cpu-freq
