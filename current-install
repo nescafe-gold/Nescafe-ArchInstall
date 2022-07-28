@@ -29,7 +29,7 @@ ENCRYPTED_BTRFS_VOLUMES_LABEL="CRYPTSYTEM"
 
 ### Encryption Information
 ENCRYPTION_OPTIONS="--perf-no_read_workqueue --perf-no_write_workqueue --type luks2 --cipher aes-xts-plain64 --key-size 512 --iter-time 2000 --pbkdf argon2id --hash sha3-512"
-ENCRYPTION_PASSWORD="test_password"
+ENCRYPTION_PASSWORD="test"
 
 ### User accounts
 USER_NAME="aidan"
@@ -447,8 +447,7 @@ done
 mount -o $MOUNT_OPTIONS,subvol=@snapshots $BTRFS /mnt/.snapshots
 mount -o $MOUNT_OPTIONS,subvolid=5 $BTRFS /mnt/btrfs
 
-
-info_print "Mounting the extra BTRFS subvolumes."
+#info_print "Mounting the extra BTRFS subvolumes."
 # Extra subvolumes
 #mkdir -p /mnt/home/$username/{Documents,ProjectsNStuff}
 
@@ -485,11 +484,11 @@ reflector --age 12 --latest 10 --sort rate --protocol https --save /etc/pacman.d
 
 info_print "syncing repositories and downloading keyring"
 pacman -Syy archlinux-keyring --noconfirm 
+
 # Pacstrap (setting up a base system onto the new root).
 info_print "Installing the base system (it may take a while)."
 pacstrap /mnt base base-devel "$kernel" "$microcode" linux-firmware "$kernel"-headers btrfs-progs rsync snapper reflector snap-pac zram-generator git zsh gptfdisk booster zstd iwd networkmanager mesa vulkan-intel libva-mesa-driver openssh mesa-vdpau libvirt refind rustup zsh sshguard neovim nano rust-analyzer xdg-user-dirs zram-generator pigz pbzip2 a52dec faac iptables-nft git faad2 flac jasper grim libmad libmpeg2 libtheora libvorbis compsize nftables wavpack xvidcore libde265 polkit-gnome mako slurp libxv noto-fonts btrfs-progs udiskie imv mpv lrzip unrar zip powertop x264 lzip apparmor lz4 wireplumber lzop p7zip noto-fonts-emoji ttf-font-awesome libva-utils man-db chrony dbus-broker lame blueman irqbalance pipewire{,-pulse,-jack,-alsa} --noconfirm
 
-#archlinux-keyring
 
 # Generating /etc/fstab.
 info_print "Generating a new fstab."
@@ -541,24 +540,6 @@ fi
 info_print "Updating pacman mirrors"
 # Update Mirrors
 arch-chroot /mnt reflector --age 12 --latest 10 --sort rate --protocol https --save /etc/pacman.d/mirrorlist 
-
-# Configuring /etc/mkinitcpio.conf.
-#info_print "Configuring /etc/mkinitcpio.conf."
-#arch-chroot /mnt sed -i 's/^HOOKS.*/HOOKS=(base systemd udev autodetect keyboard keymap modconf block sd-encrypt resume filesystems fsck)/' /etc/mkinitcpio.conf
-#arch-chroot /mnt sed -i 's/BINARIES=()/BINARIES=("\/usr\/bin\/btrfs")/' /etc/mkinitcpio.conf
-#arch-chroot /mnt sed -i 's/MODULES=()/MODULES=(i915 btrfs)/' /etc/mkinitcpio.conf && \
-#arch-chroot /mnt sed -i 's/#COMPRESSION="lz4"/COMPRESSION="lz4"/' /etc/mkinitcpio.conf && \
-#arch-chroot /mnt sed -i 's/#COMPRESSION_OPTIONS=()/COMPRESSION_OPTIONS=(-9)/' /etc/mkinitcpio.conf && \
-
-# if you have more than 1 btrfs drive
-#sed -i 's/^HOOKS.*/HOOKS=(base systemd udev autodetect keyboard keymap modconf block sd-encrypt resume btrfs filesystems fsck)/' /etc/mkinitcpio.conf
-
-
-# Setting up LUKS2 encryption in grub.
-#info_print "Setting up grub config."
-#UUID=$(blkid -s UUID -o value $CRYPTSYSTEM)
-#sed -i "\,^GRUB_CMDLINE_LINUX=\"\",s,\",&rd.luks.name=$UUID=$CRYPTSYSTEM root=$BTRFS," /mnt/etc/default/grub
-
 
 ### Configure the system
 # Configure selected locale and console keymap
