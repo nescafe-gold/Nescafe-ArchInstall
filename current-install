@@ -18,6 +18,8 @@ RESET='\e[0m'
 KEYMAP="uk"
 LOCALE="en_GB.UTF-8"
 HOSTNAME="TEST-ARCH"
+
+# No option to choose if left blank yet. I will add section where it can list the timeone 
 TIMEZONE="Europe/London"
 #Doesn't do anything yet
 NTP="TRUE"
