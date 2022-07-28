@@ -49,6 +49,11 @@ If you leave some of the variables blank then it will prompt you for the informa
   - Disable ICMP redirects
   - Automatic logout for vtconsole
 
+* Two kernel options in the bootloader. The first option is the kernel you chose in the script. The second entry is for a custom kernel called xanmod-tt.
+  - The xanmod kernel is optimised for low latency and it has some new features that the generic kernel doesn't.
+  - I haven't installed the custom kernel in this script so the custom kernel boot entry won't work until it is installed.
+    - I have created a script that installs the kernel, which you can run once you have your system up and running. The script compiles the kernel so it will take a while depending on your system. I recommend running this in the background once you have your desktop set up.
+
 ## Default Variable Options
 To choose your options before the script runs, all you need to do is open the script and edit the variables. Here are the default values of the script that can be changed:
 
@@ -124,3 +129,30 @@ This list will change as the script is being developed.
 * ENABLE_BLACKARCH
 * ENABLE_MULTILIB
 * AUTOCPUFREQ
+
+
+## Using the script
+1. Once you are booted into the arch linux ISO. You will need to sync the pacman repos and install git
+````
+pacman -Syy git
+````
+2. Git clone this repository
+```` 
+git clone https://github.com/nescafe-gold/Nescafe-ArchInstall
+````
+3. cd into the Nescafe-ArchInstall repository
+````
+cd Nescafe-ArchInstall
+````
+4. Edit the variables in the script if you want it to be fully automated
+````
+vim current-install
+````
+5. make script executable
+````
+chmod +x current-install
+````
+6. Run the script
+``` 
+./current-install 
+```
