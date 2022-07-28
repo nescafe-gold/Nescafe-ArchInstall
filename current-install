@@ -487,7 +487,7 @@ pacman -Syy archlinux-keyring --noconfirm
 
 # Pacstrap (setting up a base system onto the new root).
 info_print "Installing the base system (it may take a while)."
-pacstrap /mnt base base-devel "$kernel" "$microcode" linux-firmware "$kernel"-headers btrfs-progs rsync snapper reflector snap-pac zram-generator git zsh gptfdisk booster zstd iwd networkmanager mesa vulkan-intel libva-mesa-driver openssh mesa-vdpau libvirt refind rustup zsh sshguard neovim nano rust-analyzer xdg-user-dirs zram-generator pigz pbzip2 a52dec faac iptables-nft git faad2 flac jasper grim libmad libmpeg2 libtheora libvorbis compsize nftables wavpack xvidcore libde265 polkit-gnome mako slurp libxv noto-fonts btrfs-progs udiskie imv mpv lrzip unrar zip powertop x264 lzip apparmor lz4 wireplumber lzop p7zip noto-fonts-emoji ttf-font-awesome libva-utils man-db chrony dbus-broker lame blueman irqbalance pipewire{,-pulse,-jack,-alsa} --noconfirm
+pacstrap /mnt base base-devel "$kernel" "$microcode" linux-firmware "$kernel"-headers btrfs-progs rsync snapper reflector snap-pac zram-generator git zsh gptfdisk booster zstd iwd networkmanager mesa vulkan-intel libva-mesa-driver openssh mesa-vdpau libvirt refind rustup zsh sshguard neovim nano rust-analyzer xdg-user-dirs zram-generator pigz pbzip2 a52dec faac iptables-nft git faad2 flac jasper grim libmad libmpeg2 libtheora libvorbis compsize nftables wavpack xvidcore libde265 polkit-gnome mako slurp libxv noto-fonts btrfs-progs udiskie imv mpv lrzip unrar zip powertop x264 lzip apparmor lz4 wireplumber lzop p7zip noto-fonts-emoji ttf-font-awesome libva-utils man-db chrony dbus-broker lame blueman irqbalance vim pipewire{,-pulse,-jack,-alsa} --noconfirm 
 
 
 # Generating /etc/fstab.
