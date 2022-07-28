@@ -145,6 +145,7 @@ username_selector () {
         fi
     else
         username="${USER_NAME}"
+    fi
 }
 
 userpass_selector () {
