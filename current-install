@@ -35,15 +35,13 @@ ENCRYPTION_PASSWORD="test"
 ENCRYPTION_ENABLED="TRUE"
 
 ### User accounts
-USER_NAME="aidan"
+USER_NAME=""
 USER_PASSWORD="test"
 ROOT_PASSWORD="test"
 
 # Can be either true, True, TRUE or false, False, FALSE
-ENABLE_BLACKARCH="True"
-ENABLE_MULTILIB="True"
-
-
+ENABLE_BLACKARCH="TRUE"
+ENABLE_MULTILIB="TRUE"
 
 # Pretty print (function).
 info_print () {
@@ -352,20 +350,21 @@ info_print "Welcome to easy-arch, a script made in order to simplify the process
 # Function selects keyboard if the KEYMAP variable is empty & it loadkeys the current environment  
 until keyboard_selector; do : ; done   
 
+# If LOCALE is empty, then select locale and setup keyboard 
+until locale_selector; do : ; done
+
+# If HOSTNAME is empty, then select hostname
+until hostname_selector; do : ; done
+
+# Setting up the kernel.
+until kernel_selector; do : ; done
+
 # Function chooses target for the installation if DISK variable is empty
 until disk_selector; do : ; done
 
 # If ENCRYPTION_PASSWORD variable is empty then ask for the encryption password
 until lukspass_selector; do : ; done
 
-# Setting up the kernel.
-until kernel_selector; do : ; done
-
-# If LOCALE is empty, then select locale and setup keyboard 
-until locale_selector; do : ; done
-
-# If HOSTNAME is empty, then select hostname
-until hostname_selector; do : ; done
 
 # If the USER_NAME variable is empty then ask for a username
 until username_selector; do : ; done
