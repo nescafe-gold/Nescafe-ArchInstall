@@ -156,3 +156,23 @@ chmod +x current-install
 ``` 
 ./current-install 
 ```
+
+### After reboot
+Once the script has finished installing, you need to reboot into your actual install to enable services such as Network Manager (without wthis you wouldn't have internet)
+
+The install script also creates 2 more scripts and puts them in your home folder. 
+
+#### Starting Services
+The first script is called after-reboot.sh. This script enables all the necessary services (including Network Manager) and it sets up your snapshot root config.
+
+To run this script do the following:
+```
+chmod +x after-reboot.sh
+```
+```
+./after-reboot.sh
+```
+
+#### Installing xanmod kernel
+
+CBA to do this yet. I will add this section when I have finished dotfiles
