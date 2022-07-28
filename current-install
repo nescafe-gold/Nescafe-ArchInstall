@@ -132,7 +132,7 @@ lukspass_selector () {
     fi
 }
 
-username_selector() {
+username_selector () {
     if [ -z "$USER_NAME" ]
     then
         input_print "Please enter name for a user account (enter empty to not create one): "
@@ -147,7 +147,7 @@ username_selector() {
         username="${USER_NAME}"
 }
 
-userpass_selector() {
+userpass_selector () {
     if [ -z "$USER_PASSWORD" ]    
         then
         input_print "Please enter a password for $username (you're not going to see the password): "
@@ -282,7 +282,7 @@ keyboard_selector () {
     fi
 }
 
-disk_selector() {
+disk_selector () {
     if [ -z "$DISK" ]
     then
         info_print "Here is a list of all the devices detected on your system:"
@@ -301,7 +301,7 @@ disk_selector() {
     fi
 }
 
-ask_enable_multilib() {
+ask_enable_multilib () {
     # If multilib not equal False 
     if [ -z "$ENABLE_MULTILIB" ]
     then
@@ -318,7 +318,7 @@ ask_enable_multilib() {
     fi
 }
 
-ask_enable_blackarch() {
+ask_enable_blackarch () {
 # Ask if you want to add Blackarch mirrors
     if [ -z "$ENABLE_BLACKARCH" ]
     then
