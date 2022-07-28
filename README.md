@@ -4,16 +4,50 @@ This script aims to install Arch Linux using a script. The script can either run
 
 If you leave some of the variables blank then it will prompt you for the information at the start so that once all the user choice i out of the way, it can be left to install without any user input.
 
-This script does the following:
-* USES EFI not BIOS
+# Features of the script
+
+
+* Uses EFI not BIOS
 * Encrypts your system using secure defaults
 * Uses booster instead of makeinitcpio (this is the initramfs)
 * Uses the BTRFS filesystem 
-- Optimised mount settings (optimized for IO, storage, and drive lifespan) SSD ONLY SO FAR
-- Snapshots on install, Pre/Post package install/uninstall/update, and daily. This produces a lot of snapshots so I setup a service that clears old ones.
+  - Optimised mount settings (optimized for IO, storage, and drive lifespan) SSD ONLY SO FAR
+* Snapshots are taken 
+  - On initial install
+  - Pre/Post package install/uninstall/update
+  - daily. This produces a lot of snapshots so I setup a service that clears old ones.
 * Uses rEFInd as the bootloader (replacement for grub). 
-* Uses a custom theme for rEFInd. I haven't settled on a theme yet, I chose a random one to test
+  - Uses a custom theme for rEFInd. I haven't settled on a theme yet, I chose a random one to test
 * Uses chrony to sync up NTP information (This is the best for laptops)
+
+
+* Udev rule for faster IO performance from NVME and SSD
+* Hooks for ZSH
+* Improved laptop battery life
+* Automatic CPU frequency scaling depending on load
+* Improved system responsiveness in low memory situations
+  - Nohang, an OOM prevention daemon
+  - Prelockd, a daemon that locks memory mapped executables & shared libraries in memory to improve system responsiveness
+  - Memavaild, improve responsiveness during heavy swapping
+* Zram, compressed swap in ram - Faster swap & less drive writes (longer ssd lifespan)
+* Improved security
+  - Nftables Firewall
+  - Apparmor
+  - SSHGuard
+  - Stricter Mount Options
+  - Stricter File access permissions
+  - Enforce a delay after a failed login attempt
+  - Restricting access to kernel pointers in the proc filesystem
+  - BPF hardening
+  - Restrict access to kernel logs
+  - Disable kexec
+  - Intitialize lsm (required to set lockdown mode)
+  - Disabled Unprivileged user namespace usage
+  - TCP SYN cookie protection
+  - Protect against tcp time-wait assassination hazards
+  - Reverse path filtering (helps protect against attackers that are using IP spoofing methods to do harm)
+  - Disable ICMP redirects
+  - Automatic logout for vtconsole
 
 ## Default Variable Options
 To choose your options before the script runs, all you need to do is open the script and edit the variables. Here are the default values of the script that can be changed:
