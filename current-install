@@ -487,7 +487,7 @@ pacman -Syy archlinux-keyring --noconfirm
 
 # Pacstrap (setting up a base system onto the new root).
 info_print "Installing the base system (it may take a while)."
-pacstrap /mnt base base-devel "$kernel" "$microcode" linux-firmware "$kernel"-headers btrfs-progs rsync snapper reflector snap-pac zram-generator git zsh gptfdisk booster zstd iwd networkmanager mesa vulkan-intel libva-mesa-driver openssh mesa-vdpau libvirt refind rustup zsh sshguard neovim nano rust-analyzer xdg-user-dirs zram-generator pigz pbzip2 a52dec faac iptables-nft git faad2 flac jasper grim libmad libmpeg2 libtheora libvorbis compsize nftables wavpack xvidcore libde265 polkit-gnome mako slurp libxv noto-fonts btrfs-progs udiskie imv mpv lrzip unrar zip powertop x264 lzip apparmor lz4 wireplumber lzop p7zip noto-fonts-emoji ttf-font-awesome libva-utils man-db chrony dbus-broker lame blueman irqbalance vim polkit-gnome dbus-broker pipewire{,-pulse,-jack,-alsa} --noconfirm 
+pacstrap /mnt base base-devel "$kernel" "$microcode" linux-firmware "$kernel"-headers btrfs-progs rsync snapper reflector snap-pac zram-generator git zsh gptfdisk booster zstd iwd networkmanager mesa vulkan-intel libva-mesa-driver openssh mesa-vdpau libvirt refind rustup zsh sshguard neovim nano rust-analyzer xdg-user-dirs zram-generator pigz pbzip2 a52dec faac iptables-nft git faad2 flac jasper grim libmad libmpeg2 libtheora libvorbis compsize nftables wavpack xvidcore libde265 polkit-gnome mako slurp libxv noto-fonts btrfs-progs udiskie imv mpv lrzip unrar zip powertop x264 lzip apparmor lz4 wireplumber lzop p7zip noto-fonts-emoji ttf-font-awesome libva-utils man-db chrony cronie dbus-broker lame blueman irqbalance vim polkit-gnome dbus-broker pipewire{,-pulse,-jack,-alsa} --noconfirm 
 
 
 # Generating /etc/fstab.
@@ -1167,6 +1167,7 @@ sudo systemctl enable --now sshd
 # Reconfigure sudo, so that a password is need to elevate privileges.
 sudo sed -i '/^# %wheel ALL=(ALL) ALL/s/# //' /etc/sudoers # Uncomment line with sed
 sudo sed -i '/^%wheel ALL=(ALL) NOPASSWD: ALL/s/^/# /' /etc/sudoers # Comment line with sed
+rm /home/$username/after-reboot.sh
 EOF
 arch-chroot /mnt chown $username /home/$username/after-reboot.sh
 
