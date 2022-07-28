@@ -19,17 +19,20 @@ KEYMAP="uk"
 LOCALE="en_GB.UTF-8"
 HOSTNAME="TEST-ARCH"
 TIMEZONE="Europe/London"
+#Doesn't do anything yet
 NTP="TRUE"
 
 #### Disk Information
 # Disk to install btrfs on. This disk will be WIPED
-DISK="/dev/nvme0n1"
+DISK=""
 EFI_LABEL="EFI"
 ENCRYPTED_BTRFS_VOLUMES_LABEL="CRYPTSYTEM"
 
 ### Encryption Information
 ENCRYPTION_OPTIONS="--perf-no_read_workqueue --perf-no_write_workqueue --type luks2 --cipher aes-xts-plain64 --key-size 512 --iter-time 2000 --pbkdf argon2id --hash sha3-512"
 ENCRYPTION_PASSWORD="test"
+# Doesn't do anything yet
+ENCRYPTION_ENABLED="TRUE"
 
 ### User accounts
 USER_NAME="aidan"
@@ -131,17 +134,28 @@ lukspass_selector () {
     fi
 }
 
-userpass_selector() {
+username_selector() {
     if [ -z "$USER_NAME" ]
     then
         input_print "Please enter name for a user account (enter empty to not create one): "
         read -r username
-        if [[ -z "$username" ]]; then
-            return 0
+        if [[ -z "$username" ]]
+        then
+            echo
+            error_print "You need to enter a username, please try again."
+            return 1
         fi
+    else
+        username="${USER_NAME}"
+}
+
+userpass_selector() {
+    if [ -z "$USER_PASSWORD" ]    
+        then
         input_print "Please enter a password for $username (you're not going to see the password): "
         read -r -s userpass
-        if [[ -z "$userpass" ]]; then
+        if [[ -z "$userpass" ]]
+        then
             echo
             error_print "You need to enter a password for $username, please try again."
             return 1
@@ -150,14 +164,14 @@ userpass_selector() {
         input_print "Please enter the password again (you're not going to see it): " 
         read -r -s userpass2
         echo
-        if [[ "$userpass" != "$userpass2" ]]; then
+        if [[ "$userpass" != "$userpass2" ]]
+        then
             echo
             error_print "Passwords don't match, please try again."
             return 1
         fi
         return 0
     else
-        username="${USER_NAME}"
         userpass="${USER_PASSWORD}"
     fi
 }
@@ -318,7 +332,9 @@ until locale_selector; do : ; done
 # If HOSTNAME is empty, then select hostname
 until hostname_selector; do : ; done
 
-# If user chose to create a username and if the USER_PASSWORD variable is empty then prompt for a password
+# If the USER_NAME variable is empty then ask for a username
+until username_selector; do : ; done
+# If the USER_PASSWORD variable is empty then prompt for a password
 until userpass_selector; do : ; done
 # If ROOT_PASSWORD is empty, then prompt for a password
 until rootpass_selector; do : ; done
