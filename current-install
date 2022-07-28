@@ -32,17 +32,18 @@ ENCRYPTED_BTRFS_VOLUMES_LABEL="CRYPTSYTEM"
 
 ### Encryption Information
 ENCRYPTION_OPTIONS="--perf-no_read_workqueue --perf-no_write_workqueue --type luks2 --cipher aes-xts-plain64 --key-size 512 --iter-time 2000 --pbkdf argon2id --hash sha3-512"
-ENCRYPTION_PASSWORD="test"
+ENCRYPTION_PASSWORD=""
+
 # Doesn't do anything yet
 ENCRYPTION_ENABLED="TRUE"
 
 ### User accounts
 USER_NAME=""
-USER_PASSWORD="test"
-ROOT_PASSWORD="test"
+USER_PASSWORD=""
+ROOT_PASSWORD=""
 
 # Can be either true, True, TRUE or false, False, FALSE
-ENABLE_BLACKARCH="TRUE"
+ENABLE_BLACKARCH=""
 ENABLE_MULTILIB="TRUE"
 
 # Change this to true if you have a laptop. It will tune the clock speed of your CPU to improve battery life
