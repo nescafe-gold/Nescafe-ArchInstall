@@ -1206,7 +1206,7 @@ sudo systemctl enable --now dbus-broker
 sudo systemctl enable --now refind-btrfs
 
 AUTOCPUFREQ="${AUTOCPUFREQ}"
-if [[ $AUTOCPUFREQ = "TRUE" ]]
+if [[ "$AUTOCPUFREQ" = "TRUE" ]]
 then
     sudo systemctl enable --now auto-cpufreq
 fi
