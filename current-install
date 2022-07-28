@@ -17,7 +17,7 @@ RESET='\e[0m'
 #### Locale information & Hostname
 KEYMAP="uk"
 LOCALE="en_GB.UTF-8"
-HOSTNAME="TEST-ARCH"
+HOSTNAME=""
 
 # No option to choose if left blank yet. I will add section where it can list the timeone 
 TIMEZONE="Europe/London"
@@ -1207,16 +1207,15 @@ sudo systemctl enable --now sshguard
 sudo systemctl enable --now memavaild 
 sudo systemctl enable --now irqbalance 
 sudo systemctl enable --now prelockd
-sudo systemctl enable --now systemd-swap
 sudo systemctl enable --now nohang-desktop
 sudo systemctl enable --now dbus-broker
 sudo systemctl enable --now refind-btrfs
 
-AUTOCPUFREQ="${AUTOCPUFREQ}"
-if [[ "$AUTOCPUFREQ" = "TRUE" ]]
-then
-    sudo systemctl enable --now auto-cpufreq
-fi
+#AUTOCPUFREQ="${AUTOCPUFREQ}"
+#if [[ "$AUTOCPUFREQ" = "TRUE" ]]
+#then
+#    sudo systemctl enable --now auto-cpufreq
+#fi
 
 # Reconfigure sudo, so that a password is need to elevate privileges.
 sudo sed -i '/^# %wheel ALL=(ALL) ALL/s/# //' /etc/sudoers # Uncomment line with sed
