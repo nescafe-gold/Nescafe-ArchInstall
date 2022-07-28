@@ -649,7 +649,7 @@ arch-chroot /mnt /bin/bash -e <<EOF
     chown $username /home/$username/paru
     cd /home/$username/paru
     su -c "makepkg -si --noconfirm" -s /bin/sh $username
-    cd /home/$username/paru
+    cd /home/$username
     rm -r /home/$username/paru
 EOF
 
@@ -668,8 +668,8 @@ if [[ $AUTOCPUFREQ = "TRUE" ]]
 then
     info_print "installing cpu-autofreq"
     git clone https://github.com/AdnanHodzic/auto-cpufreq.git /mnt/home/$username/auto-cpufreq
-    chown $username /mnt/home/$username/auto-cpufreq
-    arch-chroot /mnt su -c "cd /home/$username/auto-cpufreq; echo I | sudo ./auto-cpufreq-installer; cd /home/$username; rm -r /home/$username/auto-cpufreq" $username
+    arch-chroot /mnt chown $username /home/$username/auto-cpufreq
+    arch-chroot /mnt su -c "cd /home/$username/auto-cpufreq; echo I | sudo ./auto-cpufreq-installer; cd /home/$username; sudo rm -rf /home/$username/auto-cpufreq" $username
 fi
 
 info_print "Enabling Audio power saving by making sound idle if inactive for 10 seconds"
