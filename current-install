@@ -580,8 +580,9 @@ arch-chroot /mnt groupadd adbusers
 arch-chroot /mnt groupadd wireshark 
 arch-chroot /mnt useradd -m -G power,input,audio,wheel,storage,rfkill,network,video,scanner,adbusers,wireshark -s /usr/bin/zsh "$username"
 
-#echo "%wheel ALL=(ALL:ALL) ALL" > /mnt/etc/sudoers.d/wheel
-info_print "Adding the user $username to the system with root privilege."
+info_print "make users in wheel group not get prompted for password. This is not a recommended setting, it is just temporary for the install"
+sed -i '/^# %wheel ALL=(ALL) NOPASSWD: ALL/s/^# //' /etc/sudoers
+
 info_print "Setting user password for $username."
 echo "$username:$userpass" | arch-chroot /mnt chpasswd 
 
@@ -1012,38 +1013,39 @@ sudo chmod 750 -R /.snapshots"
 sudo chmod a+rx /.snapshots"
 sudo chown :wheel /.snapshots
 
-su -c "sudo snapper -c root create --description "Fresh Install"" $username
+"sudo snapper -c root create --description "Fresh Install"" 
 
-su -c "sudo sed -i 's/^TIMELINE_MIN_AGE.*/TIMELINE_MIN_AGE="1800"/' /etc/snapper/configs/root" $username
-su -c "sudo sed -i 's/^TIMELINE_LIMIT_HOURLY.*/TIMELINE_LIMIT_HOURLY="0"/' /etc/snapper/configs/root" $username
-su -c "sudo sed -i 's/^TIMELINE_LIMIT_DAILY.*/TIMELINE_LIMIT_DAILY="7"/' /etc/snapper/configs/root" $username
-su -c "sudo sed -i 's/^TIMELINE_LIMIT_WEEKLY.*/TIMELINE_LIMIT_WEEKLY="0"/' /etc/snapper/configs/root" $username
-su -c "sudo sed -i 's/^TIMELINE_LIMIT_MONTHLY.*/TIMELINE_LIMIT_MONTHLY="0"/' /etc/snapper/configs/root" $username
-su -c "sudo sed -i 's/^TIMELINE_LIMIT_YEARLY.*/TIMELINE_LIMIT_YEARLY="0"/' /etc/snapper/configs/root" $username
+sudo sed -i 's/^TIMELINE_MIN_AGE.*/TIMELINE_MIN_AGE="1800"/' /etc/snapper/configs/root" 
+sudo sed -i 's/^TIMELINE_LIMIT_HOURLY.*/TIMELINE_LIMIT_HOURLY="0"/' /etc/snapper/configs/root" 
+sudo sed -i 's/^TIMELINE_LIMIT_DAILY.*/TIMELINE_LIMIT_DAILY="7"/' /etc/snapper/configs/root" 
+sudo sed -i 's/^TIMELINE_LIMIT_WEEKLY.*/TIMELINE_LIMIT_WEEKLY="0"/' /etc/snapper/configs/root" 
+sudo sed -i 's/^TIMELINE_LIMIT_MONTHLY.*/TIMELINE_LIMIT_MONTHLY="0"/' /etc/snapper/configs/root" 
+sudo sed -i 's/^TIMELINE_LIMIT_YEARLY.*/TIMELINE_LIMIT_YEARLY="0"/' /etc/snapper/configs/root"
 
-su -c "sudo systemctl enable --now snapper-timeline.timer snapper-cleanup.timer" $username
-su -c "sudo systemctl disable NetworkManager-wait-online" $username
-su -c "sudo systemctl mask NetworkManager-wait-online" $username
-su -c "sudo systemctl enable --now NetworkManager " $username
-su -c "sudo systemctl enable --now NetworkManager-dispatcher" $username
-su -c "sudo systemctl enable --now nftables" $username
-su -c "sudo systemctl enable --now sshd" $username
+sudo systemctl enable --now snapper-timeline.timer snapper-cleanup.timer"
+sudo systemctl disable NetworkManager-wait-online"
+sudo systemctl mask NetworkManager-wait-online"
+sudo systemctl enable --now NetworkManager"
+sudo systemctl enable --now NetworkManager-dispatcher
+sudo systemctl enable --now nftables"
+sudo systemctl enable --now sshd
 
 # uncomment if chronyd NOT is installed
 #sudo systemctl disable --now systemd-timesyncd.service
 
-su -c "sudo systemctl enable --now chronyd" $username
-su -c "sudo systemctl enable --now reflector" $username
-su -c "sudo systemctl enable --now apparmor" $username
-su -c "sudo systemctl enable --now sshguard" $username
-su -c "sudo systemctl enable --now memavaild" $username
-su -c "sudo systemctl enable --now irqbalance" $username
-su -c "sudo systemctl enable --now prelockd" $username
-su -c "sudo systemctl enable --now systemd-swap" $username
-su -c "sudo systemctl enable --now nohang-desktop" $username
-su -c "sudo systemctl enable --now auto-cpufreq " $username
-su -c "sudo systemctl enable --now dbus-broker" $username
-su -c "sudo systemctl enable --now refind-btrfs" $username
+sudo systemctl enable --now chronyd" 
+sudo systemctl enable --now reflector"
+sudo systemctl enable --now apparmor" 
+sudo systemctl enable --now sshguard" 
+sudo systemctl enable --now memavaild" 
+sudo systemctl enable --now irqbalance" 
+sudo systemctl enable --now prelockd" 
+sudo systemctl enable --now systemd-swap" 
+sudo systemctl enable --now nohang-desktop" 
+sudo systemctl enable --now auto-cpufreq" 
+sudo systemctl enable --now dbus-broker" 
+sudo systemctl enable --now refind-btrfs" 
+sudo systemctl enable --now ssh" 
 
 
 
@@ -1099,6 +1101,11 @@ tput sgr0
 echo
 EOF
 arch-chroot /mnt chown $username /home/$username/after-reboot.sh
+
+info_print "reconfiguring sudo to need a password"
+# Reconfigure sudo, so that a password is need to elevate privileges.
+sed -i '/^# %wheel ALL=(ALL) ALL/s/# //' /etc/sudoers # Uncomment line with sed
+sed -i '/^%wheel ALL=(ALL) NOPASSWD: ALL/s/^/# /' /etc/sudoers # Comment line with sed
 
 
 # Finishing up.
