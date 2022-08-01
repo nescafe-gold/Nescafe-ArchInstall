@@ -310,10 +310,10 @@ disk_selector () {
 
 install_blackarch () {
    info_print "Adding Blackarch repository to pacman config"
-   curl https://blackarch.org/strap.sh --output /mnt/blackarch_strap.sh
-   chmod +x /mnt/blackarch_strap.sh
-   arch-chroot /mnt ./blackarch_strap.sh
-   rm /mnt/blackarch_strap.sh
+   arch-chroot /mnt curl https://blackarch.org/strap.sh --output /root/blackarch_strap.sh
+   arch-chroot /mnt chmod +x /root/blackarch_strap.sh
+   arch-chroot /mnt /root/blackarch_strap.sh
+   arch-chroot /mnt rm /root/blackarch_strap.sh
 }
 
 ask_enable_blackarch () {
@@ -596,7 +596,7 @@ if [[ $MULTILIB = "TRUE" || $MULTILIB = "True" || $MULTILIB = "true" ]]
 then
     arch-chroot /mnt sed -i "/\[multilib\]/,/Include/"'s/^#//' /etc/pacman.conf
 fi
-
+info_print "Adding Blackarch repository to pacman config"
 if [[ $BLACKARCH = "TRUE" || $BLACKARCH = "True" || $BLACKARCH = "true" ]]
 then
     install_blackarch
