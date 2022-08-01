@@ -1170,115 +1170,15 @@ info_print "Configuring rEFInd BTRFS configuration (provided by refind-btrfs)"
 sed -i 's/^selection_count.*/count = "inf"/' /mnt/etc/refind-btrfs.conf
 sed -i 's/^include_sub_menus.*/include_sub_menus = true/' /mnt/etc/refind-btrfs.conf
 
-info_print "Snapper configuration"
 
-cat << EOF >> /mnt/home/$username/after-reboot.sh
-sudo umount /.snapshots
-sudo rm -r /.snapshots
-sudo snapper -c root create-config / 
-sudo mount -a
-sudo chmod 750 -R /.snapshots
-sudo chmod a+rx /.snapshots
-sudo chown :wheel /.snapshots
+cp /root/Nescafe-ArchInstall/after-reboot.sh /home/$username/after-reboot.sh
+cp /root/Nescafe-ArchInstall/after-reboot.sh /home/$username/install-xanmod-kernel.sh
 
-sudo snapper -c root create --description "Fresh Install" 
-
-sudo sed -i 's/^TIMELINE_MIN_AGE.*/TIMELINE_MIN_AGE="1800"/' /etc/snapper/configs/root 
-sudo sed -i 's/^TIMELINE_LIMIT_HOURLY.*/TIMELINE_LIMIT_HOURLY="0"/' /etc/snapper/configs/root 
-sudo sed -i 's/^TIMELINE_LIMIT_DAILY.*/TIMELINE_LIMIT_DAILY="7"/' /etc/snapper/configs/root 
-sudo sed -i 's/^TIMELINE_LIMIT_WEEKLY.*/TIMELINE_LIMIT_WEEKLY="0"/' /etc/snapper/configs/root 
-sudo sed -i 's/^TIMELINE_LIMIT_MONTHLY.*/TIMELINE_LIMIT_MONTHLY="0"/' /etc/snapper/configs/root 
-sudo sed -i 's/^TIMELINE_LIMIT_YEARLY.*/TIMELINE_LIMIT_YEARLY="0"/' /etc/snapper/configs/root
-
-sudo systemctl enable --now snapper-timeline.timer snapper-cleanup.timer
-sudo systemctl disable NetworkManager-wait-online
-sudo systemctl mask NetworkManager-wait-online
-sudo systemctl enable --now NetworkManager
-sudo systemctl enable --now NetworkManager-dispatcher
-sudo systemctl enable --now nftables
-sudo systemctl enable --now sshd
-
-# uncomment if chronyd NOT is installed
-#sudo systemctl disable --now systemd-timesyncd.service
-
-sudo systemctl enable --now chronyd 
-sudo systemctl enable --now reflector
-sudo systemctl enable --now apparmor 
-sudo systemctl enable --now sshguard 
-sudo systemctl enable --now memavaild 
-sudo systemctl enable --now irqbalance 
-sudo systemctl enable --now prelockd
-sudo systemctl enable --now nohang-desktop
-sudo systemctl enable --now dbus-broker
-sudo systemctl enable --now refind-btrfs
-
-#AUTOCPUFREQ="${AUTOCPUFREQ}"
-#if [[ "$AUTOCPUFREQ" = "TRUE" ]]
-#then
-#    sudo systemctl enable --now auto-cpufreq
-#fi
-
-# Reconfigure sudo, so that a password is need to elevate privileges.
-sudo sed -i '/^# %wheel ALL=(ALL) ALL/s/# //' /etc/sudoers # Uncomment line with sed
-sudo sed -i '/^%wheel ALL=(ALL) NOPASSWD: ALL/s/^/# /' /etc/sudoers # Comment line with sed
-rm /home/$username/after-reboot.sh
-EOF
 arch-chroot /mnt chown $username /home/$username/after-reboot.sh
+arch-chroot /mnt chmod +x /home/$username/after-reboot.sh
 
-
-cat << EOF >> /mnt/home/$username/install-xanmod-kernel.sh
-su -c "paru -S modprobed-db --noconfirm --needed"
-modprobed-db
-modprobed-db store
-systemctl --user enable --now modprobed-db.service
-
-echo
-tput setaf 2
-echo "################################################################"
-echo "################### Start"
-echo "################################################################"
-tput sgr0
-echo
-
-git clone https://aur.archlinux.org/linux-xanmod-tt.git ~/linux-xanmod-tt
-
-FIND="_microarchitecture=0"
-REPLACE="_microarchitecture=98"
-sed -i "s/$FIND/$REPLACE/g" ~/linux-xanmod-tt/PKGBUILD
-
-# FIND="use_numa=y"
-# REPLACE="use_numa=n"
-# sed -i "s/$FIND/$REPLACE/g" ~/linux-xanmod-tt/PKGBUILD
-
-# FIND="use_tracers=y"
-# REPLACE="use_tracers=n"
-# sed -i "s/$FIND/$REPLACE/g" ~/linux-xanmod-tt/PKGBUILD
-
-# FIND="_compiler=gcc"
-# REPLACE="_compiler=gcc"
-# sed -i "s/$FIND/$REPLACE/g" ~/linux-xanmod-tt/PKGBUILD
-
-# FIND="_compress_modules=n"
-# REPLACE="_compress_modules=n"
-# sed -i "s/$FIND/$REPLACE/g" ~/linux-xanmod-tt/PKGBUILD
-
-FIND="_localmodcfg=n"
-REPLACE="_localmodcfg=y"
-sed -i "s/$FIND/$REPLACE/g" ~/linux-xanmod-tt/PKGBUILD
-
-cd ~/linux-xanmod-tt
-
-makepkg -s --skippgpcheck
-
-echo
-tput setaf 2
-echo "################################################################"
-echo "################### Stop"
-echo "################################################################"
-tput sgr0
-echo
-EOF
 arch-chroot /mnt chown $username /home/$username/install-xanmod-kernel.sh
+arch-chroot /mnt chmod +x /home/$username/install-xanmod-kernel.sh
 
 
 # Finishing up.
