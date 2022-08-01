@@ -1178,6 +1178,7 @@ arch-chroot /mnt chmod +x /home/$username/after-reboot.sh
 arch-chroot /mnt chown $username /home/$username/install-xanmod-kernel.sh
 arch-chroot /mnt chmod +x /home/$username/install-xanmod-kernel.sh
 
+git clone https://github.com/nescafe-gold/nescafe-dotfiles /mnt/home/$username/nescafe-dotfiles
 
 # Finishing up.
 info_print "Done, you may now wish to reboot (further changes can be done by chrooting into /mnt)."
