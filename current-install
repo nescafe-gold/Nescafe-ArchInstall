@@ -1180,16 +1180,15 @@ sed -i 's/^selection_count.*/count = "inf"/' /mnt/etc/refind-btrfs.conf
 sed -i 's/^include_sub_menus.*/include_sub_menus = true/' /mnt/etc/refind-btrfs.conf
 
 
-cp /root/Nescafe-ArchInstall/after-reboot.sh /mnt/home/$username/after-reboot.sh
-cp /root/Nescafe-ArchInstall/install-xanmod-kernel /mnt/home/$username/install-xanmod-kernel.sh
+
+info_print "Cloning my dotfile repo into your home folder. This repo contains the service initialiser script that should be run after a reboot. It also contains a script that installs my dotfiles for you."
+git clone --recurse-submodules https://github.com/nescafe-gold/nescafe-dotfiles.git /mnt/home/$username/nescafe-dotfiles
 
 arch-chroot /mnt chown $username /home/$username/after-reboot.sh
 arch-chroot /mnt chmod +x /home/$username/after-reboot.sh
 
 arch-chroot /mnt chown $username /home/$username/install-xanmod-kernel.sh
 arch-chroot /mnt chmod +x /home/$username/install-xanmod-kernel.sh
-
-git clone https://github.com/nescafe-gold/nescafe-dotfiles /mnt/home/$username/nescafe-dotfiles
 
 # Finishing up.
 info_print "Done, you may now wish to reboot (further changes can be done by chrooting into /mnt)."
