@@ -399,12 +399,14 @@ until ask_enable_multilib; do : ; done
 # if blackarch user variable empty then ask if want to enable blaackarch
 until ask_enable_blackarch; do : ; done
 
+#If AUTOCPUFREQ is empty then give option to choose
+until autocpu_selector; do : ; done
+
 # Function chooses target for the installation if DISK variable is empty
 until disk_selector; do : ; done
 
 # If ENCRYPTION_PASSWORD variable is empty then ask for the encryption password
 until lukspass_selector; do : ; done
-
 
 # If the USER_NAME variable is empty then ask for a username
 until username_selector; do : ; done
@@ -413,8 +415,6 @@ until userpass_selector; do : ; done
 # If ROOT_PASSWORD is empty, then prompt for a password
 until rootpass_selector; do : ; done
 
-#If AUTOCPUFREQ is empty then give option to choose
-until autocpu_selector; do : ; done
 
 # Warn user about deletion of old partition scheme.
 input_print "This will delete the current partition table on $DISK once installation starts. Do you agree [y/N]?: "
