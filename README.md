@@ -167,9 +167,6 @@ The first script is called after-reboot.sh. This script enables all the necessar
 
 To run this script do the following:
 ```
-chmod +x after-reboot.sh
-```
-```
 ./after-reboot.sh
 ```
 
