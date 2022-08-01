@@ -424,8 +424,6 @@ if ! [[ "${disk_response,,}" =~ ^(yes|y)$ ]]; then
     exit
 fi
 
-
-}
 #################### Actual Install ###############
 info_print "Wiping $DISK."
 wipefs -af "$DISK" &>/dev/null 
