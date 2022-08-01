@@ -1,4 +1,12 @@
 #!/bin/bash
+
+USERNAME="$(whoami)"
+
+package=auto-cpufreq
+if pacman -Qs $package > /dev/null ; then
+    sudo systemctl enable --now auto-cpufreq
+fi 
+
 sudo umount /.snapshots
 sudo rm -r /.snapshots
 sudo snapper -c root create-config / 
@@ -24,10 +32,13 @@ sudo systemctl enable --now NetworkManager-dispatcher
 sudo systemctl enable --now nftables
 sudo systemctl enable --now sshd
 
-# uncomment if chronyd NOT is installed
-#sudo systemctl disable --now systemd-timesyncd.service
+package=chrony
+if pacman -Qs $package > /dev/null ; then
+    sudo systemctl enable --now chronyd 
+else
+    sudo systemctl disable --now systemd-timesyncd.service
+fi 
 
-sudo systemctl enable --now chronyd 
 sudo systemctl enable --now reflector
 sudo systemctl enable --now apparmor 
 sudo systemctl enable --now sshguard 
@@ -38,13 +49,6 @@ sudo systemctl enable --now nohang-desktop
 sudo systemctl enable --now dbus-broker
 sudo systemctl enable --now refind-btrfs
 
-#AUTOCPUFREQ="${AUTOCPUFREQ}"
-#if [[ "$AUTOCPUFREQ" = "TRUE" ]]
-#then
-#    sudo systemctl enable --now auto-cpufreq
-#fi
-
 # Reconfigure sudo, so that a password is need to elevate privileges.
 sudo sed -i '/^# %wheel ALL=(ALL) ALL/s/# //' /etc/sudoers # Uncomment line with sed
 sudo sed -i '/^%wheel ALL=(ALL) NOPASSWD: ALL/s/^/# /' /etc/sudoers # Comment line with sed
-rm /home/$username/after-reboot.sh
