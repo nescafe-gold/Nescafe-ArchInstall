@@ -330,14 +330,14 @@ ask_enable_blackarch () {
     if [ -z "$ENABLE_BLACKARCH" ]
     then
         input_print "Do you want to add the Blackarch repos to your pacman config (leaving blank will also select no)? [y/N]?: "
-        read -r disk_response
-        if ! [[ "${disk_response,,}" =~ ^(yes|y)$ ]]; then
-            continue
+        read -r blackarch_response
+        if ! [[ "${blackarch_response,,}" =~ ^(yes|y)$ ]]; then
+            BLACKARCH="FALSE"
         else
             BLACKARCH="TRUE"
         fi
     else
-        BLACKARCH="${ENABLE_BLACKARCH}"
+        BLACKARCH="$BLACKARCH"
     fi
 }
 
@@ -412,7 +412,17 @@ if ! [[ "${disk_response,,}" =~ ^(yes|y)$ ]]; then
     exit
 fi
 
+ask_blackarch () {
+    read -r username
+    if [[ -z "$username" ]]
+        then
+            echo
+            error_print "You need to enter a username, please try again."
+            return 1
+        fi
+      
 
+}
 #################### Actual Install ###############
 info_print "Wiping $DISK."
 wipefs -af "$DISK" &>/dev/null 
@@ -584,14 +594,15 @@ then
     arch-chroot /mnt sed -i "/\[multilib\]/,/Include/"'s/^#//' /etc/pacman.conf
 fi
 
-info_print "Adding Blackarch repository to pacman config"
 if [[ $BLACKARCH = "TRUE" || $BLACKARCH = "True" || $BLACKARCH = "true" ]]
 then
+    info_print "Adding Blackarch repository to pacman config"
     curl https://blackarch.org/strap.sh --output /mnt/blackarch_strap.sh
     chmod +x /mnt/blackarch_strap.sh
     arch-chroot /mnt ./blackarch_strap.sh
     rm /mnt/blackarch_strap.sh
-fi
+else 
+
 
 info_print "Updating pacman mirrors"
 # Update Mirrors
