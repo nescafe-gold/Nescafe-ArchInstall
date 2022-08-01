@@ -675,9 +675,7 @@ arch-chroot /mnt su -c "paru --noremovemake --batchinstall --noconfirm -S firefo
 if [[ $AUTOCPUFREQ = "TRUE" ]]
 then
     info_print "installing cpu-autofreq"
-    git clone https://github.com/AdnanHodzic/auto-cpufreq.git /mnt/home/$username/auto-cpufreq
-    arch-chroot /mnt chown $username /home/$username/auto-cpufreq
-    arch-chroot /mnt su -c "cd /home/$username/auto-cpufreq; echo I | sudo ./auto-cpufreq-installer; cd /home/$username; sudo rm -rf /home/$username/auto-cpufreq" $username
+    paru -S auto-cpufreq --noconfirm
 fi
 
 info_print "Enabling Audio power saving by making sound idle if inactive for 10 seconds"
